@@ -1,9 +1,9 @@
 #include "../include/MME.h"
 #include "../../ENODE/include/ENodeB.h"
 
-MME::MME(const std::string& path): worker(std::make_unique<MMEHandler>(path, xlr)), xlr("xlr.db") {
+MME::MME(const std::string& path)
+        : worker(std::make_unique<MMEHandler>(path, xlr, ENodes)), xlr("xlr.db") {}
 
-}
 
 void MME::add_ENode(int id, ENodeB* enode) {
     std::lock_guard lock(enodeMtx);

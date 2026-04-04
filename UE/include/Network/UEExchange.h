@@ -8,8 +8,8 @@ class UEExchange {
     int enodebId=-1;
     bool IN_ACTIVE = false;
 
-    json handleAuth();
-    json handleAttachResponse();
+    json handleAttachRequest();
+    json handleAuthResponse();
     // void handleSMS(const json& res);
 
 public:

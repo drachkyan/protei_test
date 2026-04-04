@@ -32,17 +32,21 @@ class ENodeB {
     std::condition_variable taskCond;
 
     std::atomic<bool> stop{false};
-    static const int MAX_CONNECTIONS = 4;
+    static constexpr int MAX_CONNECTIONS = 4;
 
     std::queue<Task> tasks;
+    std::mutex slotMtx;
 
-    std::array<Slot, MAX_CONNECTIONS> slots;
-    std::unordered_map<std::string, int> tmsiToSlot;
+    std::unordered_map<std::string, Slot> slots;
 
+    bool hasFreeSlot() const;
 public:
     ENodeB(int id_, double x_, double power_, double radius_, MME& mme_);
     void run();
     void shutdown();
     void push(Task msg);
+
+    bool reserveSlot(const std::string& tmsi);
+    void releaseSlot(const std::string &tmsi);
 };
 

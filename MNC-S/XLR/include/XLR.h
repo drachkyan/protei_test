@@ -29,6 +29,7 @@ public:
     void insert(const Subscriber& s);
     std::optional<Subscriber> findByImsi(const std::string& imsi);
     std::optional<Subscriber> findByTmsi(const std::string& tmsi);
-    void updateTmsi(const std::string& imsi, const std::string& tmsi, int enodebId);
+    void updateTmsi(const std::string& imsi, const std::string& tmsi);
+    void updateEnodeB(const std::string& tmsi, int enodebId);
     void clearTmsi(const std::string& tmsi);
 };

@@ -1,7 +1,7 @@
 #include "../../include/Network/UEExchange.h"
 #include "../../../model/StatusCodes/StatusCodes.h"
 
-json UEExchange::handleAuth() {
+json UEExchange::handleAttachRequest() {
     json req = {
         {"type", "A"},
         {"IMSI", settings.getContext().getIMSI()},
@@ -14,7 +14,7 @@ json UEExchange::handleAuth() {
     return res;
 }
 
-json UEExchange::handleAttachResponse() {
+json UEExchange::handleAuthResponse() {
     json req = {
         {"type", "AR"},
         {"TMSI", settings.getContext().getTMSI()},
@@ -60,7 +60,7 @@ void UEExchange::attach() {
 
     spdlog::info("Лучшая станция: {} сигнал: {}", enodebId, bestPower);
 
-    auto auth_res = handleAuth();
+    auto auth_res = handleAttachRequest();
 
     if (!auth_res.contains("TMSI")) {
         spdlog::info("Не удалось авторизироваться к станции");
@@ -68,7 +68,7 @@ void UEExchange::attach() {
     }
     settings.getContext().setTMSI(auth_res["TMSI"]);
 
-    auto res = handleAttachResponse();
+    auto res = handleAuthResponse();
     if (static_cast<int>(StatusCode::SUCCESS) != res["status"]) {
         spdlog::info("Возникла ошибка подключения");
         return;

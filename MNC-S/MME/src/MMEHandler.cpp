@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include "../../../model/StatusCodes/StatusCodes.h"
+#include "../../ENODE/include/ENodeB.h"
 
 void MMEHandler::initHandlersMap() {
     handlersMap["A"] = &MMEHandler::handleAttach;
@@ -15,28 +16,45 @@ void MMEHandler::initHandlersMap() {
 json MMEHandler::handleAttach(const json &req) {
 
     if (!req.contains("IMSI")) {
-        spdlog::info("Нет IMSI в запросе");
+        spdlog::info("[MME] Нет IMSI в запросе");
         return StatusCode::NOT_FOUND_JSON;
     }
-
+    auto TMSI = generateTMSI(TMSI_script);
+    xlr.updateTmsi(req["IMSI"], TMSI);
     auto sub = xlr.findByImsi(req["IMSI"]);
 
     if (!sub) {
-        spdlog::info("Неизвестный абонент");
+        spdlog::info("[MME] Неизвестный абонент");
         return StatusCode::NOT_FOUND_JSON;
     }
 
-    auto TMSI = generateTMSI(TMSI_script);
+
     auto res = StatusCode::SUCCESS_JSON;
     res["TMSI"] = TMSI;
     return res;
 }
 
 json MMEHandler::handleUpdateLocation(const json &req) {
-    json res = StatusCode::SUCCESS_JSON;
-    spdlog::info("[MME] Пришло на апдейт локейшен: {}", req.dump());
 
-    return res;
+    if (!req.contains("TMSI")) {
+        spdlog::info("[MME] Нет TMSI в запросе");
+        return StatusCode::NOT_FOUND_JSON;
+    }
+    if (!req.contains("ENode")) {
+        spdlog::info("[MME] Не выбрана базовая станция");
+        return StatusCode::NOT_FOUND_JSON;
+    }
+
+    const auto ENodeID = req["ENode"].get<int>();
+    const auto TMSI = req["TMSI"];
+    if (!ENodes[ENodeID]->reserveSlot(TMSI)) {
+        spdlog::info("[MME] Не получилось создать буфер ENode");
+        return StatusCode::SERVER_ERROR_JSON;
+    }
+
+    xlr.updateEnodeB(TMSI, ENodeID);
+
+    return StatusCode::SUCCESS_JSON;;
 }
 
 std::string MMEHandler::generateTMSI(std::string& scriptPath){
@@ -57,7 +75,11 @@ std::string MMEHandler::generateTMSI(std::string& scriptPath){
     return result;
 }
 
-MMEHandler::MMEHandler(std::string path, XLR& xlr_): TMSI_script(std::move(path)), xlr(xlr_) { initHandlersMap(); }
+MMEHandler::MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& enodes_)
+        : TMSI_script(std::move(path)), xlr(xlr_), ENodes(enodes_) {
+
+    initHandlersMap();
+}
 
 json MMEHandler::handle(const json &req) {
     json res{};
