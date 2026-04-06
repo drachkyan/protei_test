@@ -28,6 +28,7 @@ class MMEHandler final : public RequestHandler {
     std::optional<Subscriber> handleWaitAbonent(std::string MSISDN_D);
 
     json handleSMS(const json& req);
+    json handleSMSStatus(const json& req);
 
     json handleDisconnect(const json& req);
 public:

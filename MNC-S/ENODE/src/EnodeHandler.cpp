@@ -11,6 +11,7 @@ void EnodeHandler::initHandlersMap() {
         handlersMap["AR"] = &EnodeHandler::handleUpdateLocation;
         handlersMap["M"] = &EnodeHandler::handleMessage;
         handlersMap["DC"] = &EnodeHandler::handleDisconnect;
+        handlersMap["SMSStatus"] = &EnodeHandler::handleSMSStatus;
     }
     {
         handlersInternalMap["SM"] = &EnodeHandler::handleSendMessage;
@@ -21,7 +22,7 @@ void EnodeHandler::initHandlersMap() {
 
 }
 
-json EnodeHandler::requestMME(const json &req) const {
+json EnodeHandler::requestMME(const json req) const {
     std::promise<json> promise;
     auto futureRes = promise.get_future();
     mme.push(MMETask{req,std::move(promise)});
@@ -161,6 +162,26 @@ json EnodeHandler::handleSendSMS(const json &req) {
     json sms_json = SMS;
     sms_json["type"] = "SMS";
     sender.sendByTMSI(TMSI_D, sms_json);
+    return StatusCode::SUCCESS_JSON;
+}
+
+json EnodeHandler::handleSMSStatus(const json &req) {
+    spdlog::info("[ENODE] Статус сообщения");
+
+    std::thread([this, req]() {
+        auto res = requestMME(req);
+        if (!res.contains("TMSI")) {
+            return;
+        };
+        auto TMSI = res["TMSI"].get<std::string>();
+        res.erase("TMSI");
+
+        sender.sendByTMSI(TMSI, res);
+
+    }).detach();
+
+
+
     return StatusCode::SUCCESS_JSON;
 }
 

@@ -30,14 +30,13 @@ void Exchange::run() {
 
     while (IN_ACTIVE) {
         auto msg = api.recvJSON();
-
         if (msg.empty()) {
             spdlog::info("Сервер отключился");
             IN_ACTIVE = false;
             break;
         }
 
-        if (!msg.contains("id")) {
+        if (!msg.contains("id") || msg["id"].get<int>() == -1) {
             worker.handle(msg);
             continue;
         }
@@ -68,6 +67,11 @@ json Exchange::sendAndWait(json &req) {
     return future.get();
 }
 
+void Exchange::send(json &req) {
+    req["id"] = -1;
+    api.sendJSON(req);
+}
+
 json Exchange::radioMeasure() {
     json req{};
     req["type"] = "R";
@@ -81,6 +85,40 @@ json Exchange::radioMeasure() {
     req["pos"] = settings.getContext().getX();
     auto res = sendAndWait(req);
     return res;
+}
+
+void Exchange::signalWorker() {
+    while (IN_ACTIVE) {
+        std::unique_lock lock(signalMtx);
+        signalCv.wait_for(lock, std::chrono::seconds(5));
+        spdlog::info("Запрос станций");
+        if (!IN_ACTIVE) break;
+
+        auto res = radioMeasure();
+        if (!res.contains("ENodes") || res["ENodes"].empty()) {
+            spdlog::info("Нет сигнала - отключение");
+            onDisconnect();
+            return;
+        }
+
+        auto& enodes = res["ENodes"];
+        auto best = std::ranges::max_element(enodes,
+            [](const json& a, const json& b) {
+                return a["power"].get<double>() < b["power"].get<double>();
+            });
+
+        auto bestId = (*best)["ENode"].get<int>();
+
+        if (bestId != enodebId) {
+            spdlog::info("Handover на eNode-B {}", bestId);
+        }
+    }
+}
+
+void Exchange::onDisconnect() {
+    IN_ACTIVE = false;
+    signalCv.notify_all();
+    api.close();
 }
 
 void Exchange::attach() {
@@ -150,6 +188,16 @@ void Exchange::sendSMS(const std::string &msisdn, const std::string &msg) {
 
 }
 
+void Exchange::sendSMSStatus(const std::string &msisdn_d, int id, MessageStatus status) {
+    json req = getJsonMessageStatus(status);
+    req["TMSI"] = settings.getContext().getTMSI();
+    req["MSISDN_D"] = msisdn_d;
+    req["SMS_ID"] = id;
+    req["type"] = "SMSStatus";
+    req["ENode"] = enodebId;
+    send(req);
+}
+
 void Exchange::connect() {
     if (api.createConnection() != 0) {
         spdlog::info("Не удалось соединиться с сервером");
@@ -157,16 +205,20 @@ void Exchange::connect() {
     }
     IN_ACTIVE = true;
     runThread = std::thread(&Exchange::run, this);
-
+    signalThread = std::thread(&Exchange::signalWorker, this);
     attach();
 }
 
-Exchange::Exchange(AppSettings& settings_): settings(settings_), api(settings_.getNetworkAddress()), worker(settings_) {
+Exchange::Exchange(AppSettings& settings_): settings(settings_), api(settings_.getNetworkAddress()), worker(settings_, *this) {
 
 }
 
 Exchange::~Exchange() {
-    IN_ACTIVE = false;
-    api.close();
-    if (runThread.joinable()) runThread.join();
+    onDisconnect();
+    if (runThread.joinable() && runThread.get_id() != std::this_thread::get_id()) {
+        runThread.join();
+    }
+    if (signalThread.joinable() && signalThread.get_id() != std::this_thread::get_id()) {
+        signalThread.join();
+    }
 }

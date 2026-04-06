@@ -3,6 +3,7 @@
 #include <string>
 
 #include "../../include/Menu/MenuItems/ActivateItem.h"
+#include "../../include/Menu/MenuItems/MoveItem.h"
 #include "spdlog/spdlog.h"
 #include "../../include/utils/utils.h"
 #include "../../include/Network/NetworkClient.h"
@@ -29,6 +30,9 @@ void Menu::initMenuItems() {
 
     menuItems.insert({"open_chat",
         std::make_unique<PrintSMSItem>("open_chat", "Открыть чат по номеру телефона", app.getContext())});
+
+    menuItems.insert({"move",
+        std::make_unique<MoveItem>("move", "Переместится на другую координату", app.getContext())});
 
 }
 
