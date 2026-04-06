@@ -1,14 +1,13 @@
 #pragma once
 
 #include "../../Menu/MenuItem.h"
-#include "../../Network/NetworkClient.h"
-#include "../../Network/UEExchange.h"
+#include "../../Network/Exchange.h"
 
 class ActivateItem : public AbstractMenuItem {
-    UEExchange& UEex;
+    Exchange& UEex;
 
 public:
-    ActivateItem (std::string name_, std::string description_, UEExchange& UEex_):
+    ActivateItem (std::string name_, std::string description_, Exchange& UEex_):
             AbstractMenuItem(std::move(name_), std::move(description_)), UEex(UEex_)  {};
     MENU_EXITS action() override {
         if (UEex.isConnected()) {

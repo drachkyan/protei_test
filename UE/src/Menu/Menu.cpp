@@ -8,6 +8,8 @@
 #include "../../include/Network/NetworkClient.h"
 #include "../../include/Menu/MenuItems/QuitItem.h"
 #include "../../include/Menu/MenuItems/RadioMesureItem.h"
+#include "../../include/Menu/MenuItems/SendSMSItem.h"
+#include "../../include/Menu/MenuItems/PrintSMSItem.h"
 
 void Menu::initMenuItems() {
     menuItems.insert({"quit",
@@ -17,14 +19,20 @@ void Menu::initMenuItems() {
         std::make_unique<QuitItem>("", "")});
 
     menuItems.insert({"send",
-        std::make_unique<RadioMeasureItem>("send", "Отправить местоположение TEST", UEex, UEctx)});
+        std::make_unique<RadioMeasureItem>("send", "Отправить местоположение TEST", UEex, app.getContext())});
 
     menuItems.insert({"activate",
         std::make_unique<ActivateItem>("activate", "Активировать подключение", UEex)});
 
+    menuItems.insert({"send_message",
+        std::make_unique<SendSMSItem>("send_message", "Отправить сообщение", UEex, app.getContext())});
+
+    menuItems.insert({"open_chat",
+        std::make_unique<PrintSMSItem>("open_chat", "Открыть чат по номеру телефона", app.getContext())});
+
 }
 
-Menu::Menu(AppSettings &app_): app(app_), UEex(app_), UEctx(app.getContext()) {
+Menu::Menu(AppSettings &app_): app(app_), UEex(app_) {
     initMenuItems();
 }
 

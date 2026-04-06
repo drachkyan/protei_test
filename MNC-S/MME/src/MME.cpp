@@ -11,29 +11,28 @@ void MME::add_ENode(int id, ENodeB* enode) {
 }
 
 void MME::run() {
-    while (!stop) {
-        MMETask task;
-
-        {
-            std::unique_lock lock(taskMtx);
-
-            taskCond.wait(lock, [this] {
-                return !tasks.empty();
-            });
-
-            if (stop && tasks.empty()) {
-                return;
+    auto worker_func = [this]() {
+        while (!stop) {
+            MMETask task;
+            {
+                std::unique_lock lock(taskMtx);
+                taskCond.wait(lock, [this] { return !tasks.empty() || stop; });
+                if (stop && tasks.empty()) return;
+                task = std::move(tasks.front());
+                tasks.pop();
             }
-
-            task = std::move(tasks.front());
-            tasks.pop();
+            json result = worker->handle(task.data);
+            task.promise.set_value(result);
         }
+    };
 
-        json result = worker->handle(task.data);
-
-        task.promise.set_value(result);
+    std::vector<std::thread> threads;
+    for (int i = 0; i < MAX_THREADS; i++) {
+        threads.emplace_back(worker_func);
     }
+    for (auto& t : threads) t.join();
 }
+
 
 void MME::shutdown() {
     for (auto enode : ENodes) {

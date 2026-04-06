@@ -1,4 +1,6 @@
 #include "../../include/Network/NetworkClient.h"
+
+#include <future>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -9,29 +11,6 @@
 #include "spdlog/spdlog.h"
 #include "../../include/utils/utils.h"
 
-void NetworkClient::ping() {
-    while (connectionFlag) {
-        std::this_thread::sleep_for(std::chrono::seconds(10));
-        if (!isConnected()) {
-            spdlog::info("Сервер разорвал соединение");
-            break;
-        }
-        json res {};
-        json req = {{"type", "ping"}};
-        sendRecv(req, res);
-        if (res.empty()) {
-            connectionFlag = false;
-            spdlog::info("Сервер разорвал соединение");
-            return;
-        }
-        if (res["type"] != "pong") {
-            connectionFlag = false;
-            spdlog::info("Сервер работает некорректно или сервел завершил свою работу");
-            return;
-        }
-    }
-    fclose(stdin);
-}
 
 int NetworkClient::createConnection() {
     fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -95,12 +74,6 @@ json NetworkClient::recvJSON() {
     return json::parse(buf);
 }
 
-void NetworkClient::sendRecv(json& req, json& res) {
-    lock.lock();
-    sendJSON(req);
-    res = recvJSON();
-    lock.unlock();
-}
 
 
 NetworkClient::NetworkClient(const NetworkAddress& address_)

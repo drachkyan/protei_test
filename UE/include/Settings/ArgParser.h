@@ -1,7 +1,7 @@
 #pragma once
 #include <string>
 #include "AppSettings.h"
-#include "../../../model/Context/UEContext.h"
+#include "../../../model/Context/Context.h"
 
 
 
@@ -29,7 +29,7 @@ public:
 
         return {
             NetworkAddress(port, addr),
-            UEContext(imsi, imei, msisdn, x)
+            Context(imsi, imei, msisdn, x)
         };
     }
 };
