@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../include/Transport.h"
-#include "../include/RequestHandler.h"
 #include "../../ENODE/include/ENodeB.h"
+#include "Sender.h"
 
 struct ClientState {
     std::vector<char> buffer;
@@ -10,9 +10,10 @@ struct ClientState {
     bool reading_len = true;
 };
 
-class Gateway : public Transport{
+class Gateway : public Transport, public Sender{
 
     std::unordered_map<int, ClientState> clients;
+    std::unordered_map<std::string, int> tmsiToFd;
 
     std::unordered_map<int, ENodeB*>& ENodes;
 
@@ -20,19 +21,13 @@ class Gateway : public Transport{
 
     json handleNode(json& req, int id) const;
 
-    json packageProcess(const char *buf) const {
-        json req = json::parse(buf);
-
-        json res = !req.contains("ENode") ?
-            handleManyNodes(req) :
-            handleNode(req, req["ENode"].get<int>());
-
-        return res;
-    }
+    json packageProcess(const char *buf) const;
 
     void onAccept(OpContext *ctx, int res) override;
     void onRecv(OpContext *ctx, int res) override;
     void onSend(const OpContext *ctx, int res) override;
+    void sendJSON(int fd, const json& msg);
 public:
     Gateway(int PORT_, std::unordered_map<int, ENodeB*>& ENodes_): Transport(PORT_), ENodes(ENodes_){};
+    void sendByTMSI(const std::string &tmsi, const json &msg) override;
 };

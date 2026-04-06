@@ -1,17 +1,17 @@
 #pragma once
 
 #include "../Network/NetworkAddress.h"
-#include "../../../model/Context/UEContext.h"
+#include "../../../model/Context/Context.h"
 
 class AppSettings {
     NetworkAddress netAddr;
-    UEContext context;
+    Context context;
 
 
 public:
-    AppSettings(NetworkAddress netAddr_, UEContext context_)
+    AppSettings(NetworkAddress netAddr_, Context context_)
         : netAddr(std::move(netAddr_)), context(std::move(context_)) {}
 
     NetworkAddress& getNetworkAddress() { return netAddr; }
-    UEContext& getContext() { return context; }
+    Context& getContext() { return context; }
 };

@@ -1,15 +1,15 @@
 #pragma once
 #include "../../Menu/MenuItem.h"
 #include "../../Network/NetworkClient.h"
-#include "../../../../model/Context/UEContext.h"
+#include "../../../../model/Context/Context.h"
 
 class RadioMeasureItem : public AbstractMenuItem {
-    UEExchange& UEex;
-    UEContext& ueCtx;
+    Exchange& UEex;
+    Context& UEctx;
 public:
 
-    RadioMeasureItem (std::string name_, std::string description_, UEExchange& UEex_, UEContext& ueCtx_):
-        AbstractMenuItem(std::move(name_), std::move(description_)), UEex(UEex_), ueCtx(ueCtx_)  {};
+    RadioMeasureItem (std::string name_, std::string description_, Exchange& UEex_, Context& ueCtx_):
+        AbstractMenuItem(std::move(name_), std::move(description_)), UEex(UEex_), UEctx(ueCtx_)  {};
 
     json sendPos() {
         auto res = UEex.radioMeasure();

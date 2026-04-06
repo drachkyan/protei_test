@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../../network/include/RequestHandler.h"
+#include "../../../model/Handler/RequestHandler.h"
 #include "../../XLR/include/XLR.h"
 
 class ENodeB;
@@ -23,6 +23,11 @@ class MMEHandler final : public RequestHandler {
 
     static std::string generateTMSI(std::string& scriptPath);
 
+    json sendSMS(ENodeB *ENodeS, int enodeD, std::string TMSI_D, std::string TMSI_S, std::string MSISDN_S, std::string MSISDN_D);
+
+    std::optional<Subscriber> handleWaitAbonent(std::string MSISDN_D);
+
+    json handleSMS(const json& req);
 public:
     MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& ENodes_);
     json handle(const json& req) override;

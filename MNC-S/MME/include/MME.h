@@ -5,7 +5,7 @@
 #include <nlohmann/json.hpp>
 
 #include "MMEHandler.h"
-#include "../../network/include/RequestHandler.h"
+#include "../../../model/Handler/RequestHandler.h"
 #include "../../XLR/include/XLR.h"
 
 class ENodeB;
@@ -19,6 +19,7 @@ struct MMETask {
 class MME {
     XLR xlr; // сначала бд тк для воркера нужно бд
 
+    const int MAX_THREADS = 4;
     std::unique_ptr<MMEHandler> worker;
     std::atomic<bool> stop = false;
     std::unordered_map<int, ENodeB*> ENodes;
@@ -35,5 +36,6 @@ public:
     void run();
     void shutdown();
     void push(MMETask task);
+    std::unordered_map<int, ENodeB*>& getENodes(){ return ENodes; }
 };
 

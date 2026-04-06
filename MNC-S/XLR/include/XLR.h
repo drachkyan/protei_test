@@ -23,7 +23,7 @@ using DB = decltype(makeStorage(""));  //  тут на этапе компиля
 
 class XLR {
     DB db;
-
+    std::mutex mtx;
 public:
     XLR(const std::string& path);
     void insert(const Subscriber& s);
@@ -32,4 +32,5 @@ public:
     void updateTmsi(const std::string& imsi, const std::string& tmsi);
     void updateEnodeB(const std::string& tmsi, int enodebId);
     void clearTmsi(const std::string& tmsi);
+    std::optional<Subscriber> findByMsisdn(const std::string& msisdn);
 };

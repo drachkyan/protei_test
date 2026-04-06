@@ -43,12 +43,11 @@ find_package(SQLite3 REQUIRED)  # это тоже libsqlite3-dev
 set(MNC_S_SOURCES
         MNC-S/network/src/Gateway.cpp
         MNC-S/network/include/Gateway.h
-        MNC-S/network/src/RequestHandler.cpp
-        MNC-S/network/include/RequestHandler.h
+        model/Handler/RequestHandler.h
         MNC-S/network/src/Transport.cpp
         MNC-S/network/include/Transport.h
-        model/Context/UEContext.cpp
-        model/Context/UEContext.h
+        model/Context/Context.cpp
+        model/Context/Context.h
         MNC-S/ENODE/src/ENodeB.cpp
         MNC-S/ENODE/include/ENodeB.h
         MNC-S/ENODE/src/EnodeHandler.cpp
@@ -66,6 +65,9 @@ set(MNC_S_SOURCES
         MNC-S/XLR/model/Subscriber.h
         MNC-S/XLR/include/XLR.h
         MNC-S/XLR/src/XLR.cpp
+        model/SMS/SMSRecord.h
+        MNC-S/network/include/Sender.h
+        UE/include/Menu/MenuItems/PrintSMSItem.h
 )
 
 set(MNC_S_LIBS
@@ -92,9 +94,14 @@ set(UE_SOURCES
         UE/src/Menu/MenuItem.cpp
         UE/include/Menu/MenuItem.h
         UE/include/Menu/MenuItems/QuitItem.h
-        UE/src/Network/UEExchange.cpp
-        UE/include/Network/UEExchange.h
-
+        UE/src/Network/Exchange.cpp
+        UE/include/Network/Exchange.h
+        model/Context/Context.cpp
+        model/Context/Context.h
+        UE/include/Menu/MenuItems/SendSMSItem.h
+        model/SMS/SMSRecord.h
+        UE/src/Network/ExchangeHandler.cpp
+        UE/include/Network/ExchangeHandler.h
 )
 
 add_executable(ue UE/UE.cpp ${UE_SOURCES})

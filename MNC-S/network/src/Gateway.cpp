@@ -1,6 +1,7 @@
 #include "../include/Gateway.h"
 
 #include <netinet/in.h>
+#include "../../../model/StatusCodes/StatusCodes.h"
 
 json Gateway::handleManyNodes(json &req) const {
 
@@ -40,6 +41,20 @@ json Gateway::handleNode(json &req, int id) const {
 
 }
 
+json Gateway::packageProcess(const char *buf) const {
+    json req = json::parse(buf);
+    if (!req.contains("id")) {
+        spdlog::info("Неправильный запрос - отстуствует айди");
+        return StatusCode::BAD_REQUEST_JSON;
+    }
+    auto id = req["id"].get<int>();
+    json res = !req.contains("ENode") ?
+        handleManyNodes(req) :
+        handleNode(req, req["ENode"].get<int>());
+    res["id"] = id;
+    return res;
+}
+
 void Gateway::onAccept(OpContext *ctx, int res) {
     if (res < 0) {
         spdlog::info("ошибка\n");
@@ -47,6 +62,7 @@ void Gateway::onAccept(OpContext *ctx, int res) {
     }
     int client_fd = res;
     clients[client_fd] = ClientState{};
+
     spdlog::info("новый клиент fd={}\n" , client_fd);
 
     addAccept();
@@ -84,7 +100,12 @@ void Gateway::onRecv(OpContext *ctx, int res) {
         state.reading_len = true;
 
 
+        auto req = json::parse(json_str);
         auto response = packageProcess(json_str.c_str());
+
+        if (req.contains("type") && req["type"] == "A" && response.contains("TMSI")) {
+            tmsiToFd[response["TMSI"].get<std::string>()] = ctx->fd;
+        }
 
         std::string data = response.dump();
         uint32_t len = htonl(data.size());
@@ -109,3 +130,24 @@ void Gateway::onSend(const OpContext *ctx, int res) {
         io_uring_submit(&ring);
     }
 }
+
+void Gateway::sendJSON(int fd, const json &msg) {
+    std::string data = msg.dump();
+    uint32_t len = htonl(data.size());
+    addSend(fd, reinterpret_cast<const char*>(&len), sizeof(len));
+    addSend(fd, data.c_str(), data.size(), true);
+    io_uring_submit(&ring);
+}
+
+void Gateway::sendByTMSI(const std::string& tmsi, const json& msg) {
+    if (!tmsiToFd.contains(tmsi)) {
+        spdlog::info("[UEC] Не найден клиент");
+        return;
+    }
+    auto client_fd = tmsiToFd[tmsi];
+    sendJSON(client_fd, msg);
+}
+
+
+
+

@@ -14,19 +14,13 @@ class NetworkClient {
     static constexpr size_t BUF_SIZE = 1024;
     NetworkAddress address;
 
-
     void ping();
-
-
-
-
 
 public:
     int createConnection();
 
     void sendJSON(const json& j) const;
     json recvJSON();
-    void sendRecv(json& req, json& res);
 
     [[nodiscard]] bool isConnected() const {return connectionFlag;}
 

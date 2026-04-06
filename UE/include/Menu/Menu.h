@@ -5,21 +5,20 @@
 #include <string>
 #include <utility>
 
-#include "../../../model/Context/UEContext.h"
+#include "../../../model/Context/Context.h"
 #include "../Menu/MenuItem.h"
 
 #include "../Settings/AppSettings.h"
 #include "../Network/NetworkClient.h"
-#include "../Network/UEExchange.h"
+#include "../Network/Exchange.h"
 
 using menu_func_type = std::function<u_int16_t()>;
 using creator_func_type = std::function<void*()>;
 
 
 class Menu {
-    AppSettings& app; // нужно для всего остального, не переносить
-    UEContext UEctx;
-    UEExchange UEex;
+    AppSettings& app;   // нужно для всего остального, не переносить
+    Exchange UEex;
     std::string alias;
 
     std::unordered_map<std::string, std::unique_ptr<AbstractMenuItem>> menuItems;
