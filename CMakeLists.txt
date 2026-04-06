@@ -69,6 +69,8 @@ set(MNC_S_SOURCES
         MNC-S/network/include/Sender.h
         UE/include/Menu/MenuItems/PrintSMSItem.h
         UE/include/Menu/MenuItems/MoveItem.h
+        MNC-S/Parser/Parser.cpp
+        MNC-S/Parser/Parser.h
 )
 
 set(MNC_S_LIBS

@@ -1,27 +1,51 @@
 #include "network/include/Gateway.h"
 #include "ENODE/include/ENodeB.h"
+#include "Parser/Parser.h"
 
 int main(int argc, char* argv[]) {
-    std::string pythonPath = "generate_tmsi.py";
+    const std::string enodePath = "bases.json";
+    const std::string epcPath   = "epc.json";
+
+    EPCConfig epc = parseEPC(epcPath);
+    auto enodeConfigs = parseBases(enodePath);
+
+    std::string pythonPath = epc.tmsi_script;
     MME mme(pythonPath);
     std::thread mme_t(&MME::run, &mme);
 
     std::unordered_map<int, ENodeB*> ENodes;
-    auto gw = Gateway(8085, ENodes);
 
-    auto ENode1 = ENodeB(1, -100, 1, 120, mme, mme.getENodes(), gw);
-    auto ENode2 = ENodeB(2, 100, 1, 120, mme, mme.getENodes(), gw);
 
-    ENodes[1] = &ENode1;
-    ENodes[2] = &ENode2;
+    Gateway gw(8085, ENodes);
 
-    std::thread t1(&ENodeB::run, &ENode1);
-    std::thread t2(&ENodeB::run, &ENode2);
+    std::vector<std::unique_ptr<ENodeB>> enodeObjects;
+    std::vector<std::thread> threads;
+
+    for (const auto& cfg : enodeConfigs) {
+        enodeObjects.push_back(std::make_unique<ENodeB>(
+            cfg.id,
+            cfg.x,
+            cfg.power,
+            cfg.radius,
+            mme,
+            mme.getENodes(),
+            gw
+        ));
+
+        ENodes[cfg.id] = enodeObjects.back().get();
+    }
+
+    for (auto& enode : enodeObjects) {
+        threads.emplace_back(&ENodeB::run, enode.get());
+    }
 
     gw.run();
 
-    t1.join();
-    t2.join();
-    mme_t.join();
+    for (auto& t : threads) {
+        if (t.joinable()) t.join();
+    }
+
+    if (mme_t.joinable()) mme_t.join();
+
     return 0;
 }
