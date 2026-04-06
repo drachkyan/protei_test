@@ -22,3 +22,26 @@ enum class MessageStatus {
     DELIVERED,
     FAILED
 };
+
+inline MessageStatus stringToMessageStatus(const std::string& status_str) {
+    static const std::unordered_map<std::string, MessageStatus> statusMap {
+            {"pending",   MessageStatus::PENDING},
+            {"sent",      MessageStatus::SENT},
+            {"delivered", MessageStatus::DELIVERED},
+            {"failed",    MessageStatus::FAILED},
+            {"read",      MessageStatus::DELIVERED}
+    };
+
+    auto it = statusMap.find(status_str);
+    return (it != statusMap.end()) ? it->second : MessageStatus::FAILED;
+}
+
+
+inline json getJsonMessageStatus(MessageStatus status) {
+    switch (status) {
+        case MessageStatus::PENDING:   return {{"message_status", "pending"}};
+        case MessageStatus::SENT:      return {{"message_status", "sent"}};
+        case MessageStatus::DELIVERED: return {{"message_status", "delivered"}};
+        default:                       return {{"message_status", "failed"}};
+    }
+}

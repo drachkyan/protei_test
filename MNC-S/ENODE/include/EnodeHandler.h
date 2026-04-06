@@ -13,6 +13,7 @@ class EnodeHandler final
 
     std::unordered_map<std::string, HandlerPtr> handlersMap;
     std::unordered_map<std::string, HandlerPtr> handlersInternalMap;
+
     void initHandlersMap();
 
     ENodeConfig& config;
@@ -31,8 +32,11 @@ class EnodeHandler final
     json handleMessage(const json &req);
     json handleReceiveSMS(const json &req);
     json handleSendSMS(const json &req);
+    json handleSMSStatus(const json &req);
 
-    json requestMME(const json& req) const;
+    json handleDisconnect(const json &req);
+
+    json requestMME(const json req) const;
 public:
     EnodeHandler(ENodeConfig& config_, MME& mme_, std::unordered_map<int, ENodeB*>& ENodes_, Sender& sender_);
 

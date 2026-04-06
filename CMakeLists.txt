@@ -68,6 +68,7 @@ set(MNC_S_SOURCES
         model/SMS/SMSRecord.h
         MNC-S/network/include/Sender.h
         UE/include/Menu/MenuItems/PrintSMSItem.h
+        UE/include/Menu/MenuItems/MoveItem.h
 )
 
 set(MNC_S_LIBS

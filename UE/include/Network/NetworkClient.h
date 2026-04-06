@@ -18,6 +18,8 @@ class NetworkClient {
 
 public:
     int createConnection();
+    void close();
+
 
     void sendJSON(const json& j) const;
     json recvJSON();

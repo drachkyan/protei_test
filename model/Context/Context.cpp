@@ -24,11 +24,13 @@ void Context::receiveSMS(const std::string &msisdn, const SMSRecord &SMS_) {
     chats[msisdn].incoming.push_back(SMS_);
 }
 
-void Context::changeSMSStatus(const std::string &msisdn, int id, MessageStatus status_) {
+void Context::changeSMSStatus(const std::string &msisdn, int id, MessageStatus status_) {\
+
     if (!chats.contains(msisdn)) {
         return;
     }
-    chats[msisdn].outgoing[id].status = status_;
+    auto& msg = chats[msisdn].outgoing[id];
+    msg.status = status_;
 }
 
 void Context::setTMSI(std::string TMSI_) {

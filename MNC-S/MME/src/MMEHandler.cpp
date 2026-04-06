@@ -12,6 +12,8 @@ void MMEHandler::initHandlersMap() {
     handlersMap["A"] = &MMEHandler::handleAttach;
     handlersMap["UL"] = &MMEHandler::handleUpdateLocation;
     handlersMap["M"] = &MMEHandler::handleSMS;
+    handlersMap["DC"] = &MMEHandler::handleDisconnect;
+    handlersMap["SMSStatus"] = &MMEHandler::handleSMSStatus;
 }
 
 json MMEHandler::handleAttach(const json &req) {
@@ -145,6 +147,49 @@ json MMEHandler::handleSMS(const json &req) {
     auto res = StatusCode::SUCCESS_JSON;
 
     return res;
+}
+
+json MMEHandler::handleSMSStatus(const json &req) {
+    spdlog::info("[MME] статус сообщения");
+    auto MSISDN_D = req["MSISDN_D"].get<std::string>();
+    auto SMS_ID = req["SMS_ID"].get<int>();
+    auto status = req["message_status"].get<std::string>();
+    auto TMSI = req["TMSI"].get<std::string>();
+
+    auto sender = xlr.findByMsisdn(MSISDN_D);
+
+    if (!sender || sender->enodeb_id < 0) {
+        spdlog::info("[MME] отправитель не в сети");
+        return StatusCode::NOT_FOUND_JSON;
+    }
+    auto receiver = xlr.findByTmsi(TMSI);
+    if (!receiver) {
+        spdlog::info("Не найден отправитель");
+        return StatusCode::NOT_FOUND_JSON;
+    }
+
+    auto res = StatusCode::SUCCESS_JSON;
+
+    res["type"] = "SMSStatus";
+    res["MSISDN_D"] = receiver->msisdn;
+    res["TMSI"] = sender->tmsi;
+    res["SMS_ID"] = SMS_ID;
+    res["message_status"] = status;
+
+    return res;
+}
+
+json MMEHandler::handleDisconnect(const json &req) {
+    spdlog::info("[MME] Отключение клиента");
+
+    if (!req.contains("TMSI")) {
+        return StatusCode::NOT_FOUND_JSON;
+    }
+
+    auto TMSI = req["TMSI"].get<std::string>();
+    xlr.clearTmsi(TMSI);
+
+    return StatusCode::SUCCESS_JSON;
 }
 
 MMEHandler::MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& enodes_)
