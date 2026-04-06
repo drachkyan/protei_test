@@ -34,6 +34,6 @@ public:
         }
         return os;
     }
-    void run() const;
+    void run();
 };
 

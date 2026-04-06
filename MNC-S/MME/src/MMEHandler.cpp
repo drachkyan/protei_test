@@ -12,6 +12,7 @@ void MMEHandler::initHandlersMap() {
     handlersMap["A"] = &MMEHandler::handleAttach;
     handlersMap["UL"] = &MMEHandler::handleUpdateLocation;
     handlersMap["M"] = &MMEHandler::handleSMS;
+    handlersMap["DC"] = &MMEHandler::handleDisconnect;
 }
 
 json MMEHandler::handleAttach(const json &req) {
@@ -145,6 +146,19 @@ json MMEHandler::handleSMS(const json &req) {
     auto res = StatusCode::SUCCESS_JSON;
 
     return res;
+}
+
+json MMEHandler::handleDisconnect(const json &req) {
+    spdlog::info("[MME] Отключение клиента");
+
+    if (!req.contains("TMSI")) {
+        return StatusCode::NOT_FOUND_JSON;
+    }
+
+    auto TMSI = req["TMSI"].get<std::string>();
+    xlr.clearTmsi(TMSI);
+
+    return StatusCode::SUCCESS_JSON;
 }
 
 MMEHandler::MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& enodes_)

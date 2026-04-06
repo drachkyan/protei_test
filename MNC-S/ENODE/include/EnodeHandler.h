@@ -32,6 +32,8 @@ class EnodeHandler final
     json handleReceiveSMS(const json &req);
     json handleSendSMS(const json &req);
 
+    json handleDisconnect(const json &req);
+
     json requestMME(const json& req) const;
 public:
     EnodeHandler(ENodeConfig& config_, MME& mme_, std::unordered_map<int, ENodeB*>& ENodes_, Sender& sender_);

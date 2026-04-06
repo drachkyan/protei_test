@@ -41,17 +41,30 @@ json Gateway::handleNode(json &req, int id) const {
 
 }
 
-json Gateway::packageProcess(const char *buf) const {
+json Gateway::packageProcess(const char *buf, int client_fd) {
     json req = json::parse(buf);
     if (!req.contains("id")) {
         spdlog::info("Неправильный запрос - отстуствует айди");
         return StatusCode::BAD_REQUEST_JSON;
     }
     auto id = req["id"].get<int>();
-    json res = !req.contains("ENode") ?
-        handleManyNodes(req) :
-        handleNode(req, req["ENode"].get<int>());
+
+    if (!req.contains("ENode")) {
+        auto res = handleManyNodes(req);
+        res["id"] = id;
+        return res;
+    }
+
+    auto ENode =  req["ENode"].get<int>();
+
+    {
+        std::lock_guard lock(clientsMtx);
+        clients[client_fd].enodeID = ENode;
+    }
+
+    auto res = handleNode(req, ENode);
     res["id"] = id;
+
     return res;
 }
 
@@ -71,11 +84,25 @@ void Gateway::onAccept(OpContext *ctx, int res) {
 }
 
 void Gateway::onRecv(OpContext *ctx, int res) {
+
     if (res <= 0) {
+
         if (clients.find(ctx->fd) == clients.end()) {
             return;
         }
+        auto& state = clients[ctx->fd];
+        json req = {
+            {"type", "DC"},
+            {"TMSI", state.tmsi}
+        };
+        std::promise<json> promise;
+
+        if (state.enodeID > 0) {
+            ENodes[state.enodeID]->push(Task{req, std::move(promise)});
+        }
+
         spdlog::info( "клиент fd={} отключился\n", ctx->fd);
+
         clients.erase(ctx->fd);
         close(ctx->fd);
         return;
@@ -101,10 +128,11 @@ void Gateway::onRecv(OpContext *ctx, int res) {
 
 
         auto req = json::parse(json_str);
-        auto response = packageProcess(json_str.c_str());
+        auto response = packageProcess(json_str.c_str(), ctx->fd);
 
         if (req.contains("type") && req["type"] == "A" && response.contains("TMSI")) {
             tmsiToFd[response["TMSI"].get<std::string>()] = ctx->fd;
+            state.tmsi = response["TMSI"].get<std::string>();
         }
 
         std::string data = response.dump();

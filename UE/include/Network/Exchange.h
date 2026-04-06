@@ -26,6 +26,8 @@ class Exchange {
 public:
     void run();
 
+    void shutdown() { IN_ACTIVE = false;};
+
     json sendAndWait(json& req);
     json radioMeasure();
 

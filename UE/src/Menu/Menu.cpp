@@ -36,7 +36,7 @@ Menu::Menu(AppSettings &app_): app(app_), UEex(app_) {
     initMenuItems();
 }
 
-void Menu::run() const {
+void Menu::run() {
 
     std::cout << *this;
     MENU_EXITS EXIT_CODE = MENU_EXITS::DEFAULT;
@@ -57,5 +57,6 @@ void Menu::run() const {
 
         EXIT_CODE = it->second->action();
     }
+    UEex.shutdown();
     fclose(stdin);
 }

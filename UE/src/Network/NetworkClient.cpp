@@ -29,6 +29,14 @@ int NetworkClient::createConnection() {
     return 0;
 }
 
+void NetworkClient::close() {
+    if (fd != -1) {
+        ::shutdown(fd, SHUT_RDWR);
+        ::close(fd);
+        fd = -1;
+    }
+}
+
 void NetworkClient::sendJSON(const json &j) const {
     if (fd == -1) {
         spdlog::info("Нет соединения");
@@ -49,7 +57,6 @@ json NetworkClient::recvJSON() {
     int n = recv(fd, &len, sizeof(len), 0);
 
     if (n <= 0) {
-        spdlog::info("Сервер отключился");
         connectionFlag = false;
         fd = -1;
         return json{};
@@ -89,6 +96,6 @@ NetworkClient::~NetworkClient() {
     connectionFlag = false;
 
     if (fd != -1) {
-        close(fd);
+        ::close(fd);
     }
 }

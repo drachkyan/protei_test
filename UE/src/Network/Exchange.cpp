@@ -27,8 +27,10 @@ json Exchange::handleAuthResponse() {
 
 
 void Exchange::run() {
+
     while (IN_ACTIVE) {
         auto msg = api.recvJSON();
+
         if (msg.empty()) {
             spdlog::info("Сервер отключился");
             IN_ACTIVE = false;
@@ -165,5 +167,6 @@ Exchange::Exchange(AppSettings& settings_): settings(settings_), api(settings_.g
 
 Exchange::~Exchange() {
     IN_ACTIVE = false;
+    api.close();
     if (runThread.joinable()) runThread.join();
 }
