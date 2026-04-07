@@ -64,9 +64,10 @@ public:
     void releaseSlot(const std::string& tmsi);
 
     void addSMStoSlot(const std::string &tmsi_s, const std::string &msisdn_d, SMSMessage &msg);
+    void deleteSMSfromSlot(const std::string &tmsi_s, const std::string &msisdn_d);
     void receiveSMS(SMSMessage msg);
 
-    SMSMessage getSMStoSend(const std::string& tmsi_s, const std::string& msisdn_d);
+    std::optional<SMSMessage> getSMStoSend(const std::string& tmsi_s, const std::string& msisdn_d);
     SMSMessage getSMSbyTMSI(const std::string& tmsi);
 };
 

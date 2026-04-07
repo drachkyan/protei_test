@@ -1,6 +1,8 @@
 #include "../include/EnodeHandler.h"
 #include <spdlog/spdlog.h>
 #include <cmath>
+
+#include "../../../cmake-build-debug-wsl/_deps/spdlog-src/include/spdlog/spdlog.h"
 #include "../../../model/StatusCodes/StatusCodes.h"
 #include "../../MME/include/MMEJSONSchemas.h"
 #include "../include/ENodeB.h"
@@ -20,6 +22,7 @@ void EnodeHandler::initHandlersMap() {
         handlersInternalMap["SM"] = &EnodeHandler::handleSendMessage;
         handlersInternalMap["RS"] = &EnodeHandler::handleReceiveSMS;
         handlersInternalMap["SS"] = &EnodeHandler::handleSendSMS;
+        handlersInternalMap["SMSStatus"] = &EnodeHandler::handleSendStatus;
     }
 
 
@@ -49,8 +52,7 @@ json EnodeHandler::handleAuth(const json &req){
 
     auto res = requestMME(MMEreq);
     if (!res.contains("TMSI")) {
-        spdlog::info("Произошла ошибка на сервере");
-        return StatusCode::SERVER_ERROR;
+        return StatusCode::BAD_REQUEST_JSON;
     }
     return res;
 }
@@ -141,11 +143,14 @@ json EnodeHandler::handleSendMessage(const json &req) {
     auto enodeS = ENodes[config.id];
 
     auto SMS = enodeS->getSMStoSend(tmsi_s, req["MSISDN_D"]);
+    if (!SMS) {
+        spdlog::info("[ENODE] Собщение не найдено");
+        return StatusCode::SERVER_ERROR_JSON;
+    }
+    SMS->msisdn_src = msisdn_s;
+    SMS->tmsi_dst = tmsi_d;
 
-    SMS.msisdn_src = msisdn_s;
-    SMS.tmsi_dst = tmsi_d;
-
-    json j_sms = SMS;
+    json j_sms = *SMS;
 
     json newReq = {
         {"type", "RS"},
@@ -208,6 +213,17 @@ json EnodeHandler::handleSMSStatus(const json &req) {
 
 
 
+    return StatusCode::SUCCESS_JSON;
+}
+
+json EnodeHandler::handleSendStatus(const json &req) {
+    auto schema = validate<SendSMSStatusSchema>(req);
+    if (!schema) {
+        spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
+    }
+    ENodes[config.id]->deleteSMSfromSlot(schema->TMSI, schema->MSISDN_D);
+    sender.sendByTMSI(schema->TMSI, req);
     return StatusCode::SUCCESS_JSON;
 }
 

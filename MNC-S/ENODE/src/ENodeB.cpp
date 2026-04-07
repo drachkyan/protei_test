@@ -1,5 +1,6 @@
 #include "../include/ENodeB.h"
 
+#include "../../../cmake-build-debug-wsl/_deps/spdlog-src/include/spdlog/spdlog.h"
 #include "spdlog/spdlog.h"
 
 
@@ -68,17 +69,20 @@ void ENodeB::pushInternalTask(Task msg) {
 }
 
 bool ENodeB::hasFreeSlot() const {
-    return TMSItoSlots.size() <= MAX_CONNECTIONS;
+    spdlog::info("{}",TMSItoSlots.size());
+    return TMSItoSlots.size() <= MAX_CONNECTIONS - 1;  // сначала сравниаем поэтому минус один
 }
 
 bool ENodeB::reserveSlot(const std::string& tmsi) {
     std::lock_guard lock(slotMtx);
+    spdlog::info("[ENODE{}] Резервируем слот для {}", config.id, tmsi);
+
     if (!hasFreeSlot()) {
         spdlog::info("[ENODE] нет свободных слотов");
         return false;
     }
 
-    TMSItoSlots[tmsi] = Slot{};
+    TMSItoSlots.emplace(tmsi, Slot{});
     return true;
 }
 
@@ -92,6 +96,12 @@ void ENodeB::addSMStoSlot(const std::string &tmsi_s, const std::string &msisdn_d
     spdlog::info("[ENODE] добавлено сообщение для {}", msisdn_d);
     auto& queue = TMSItoSlots[tmsi_s].outbox[msisdn_d];
     queue.push(msg);
+}
+
+void ENodeB::deleteSMSfromSlot(const std::string &tmsi_s, const std::string &msisdn_d) {
+    std::lock_guard lock(slotMtx);
+    auto& queue = TMSItoSlots[tmsi_s].outbox[msisdn_d];
+    queue.pop();
 }
 
 void ENodeB::receiveSMS(SMSMessage msg) {
@@ -112,12 +122,23 @@ void ENodeB::receiveSMS(SMSMessage msg) {
 }
 
 
-SMSMessage ENodeB::getSMStoSend(const std::string &tmsi_s, const std::string &msisdn_d) {
-    std::lock_guard lock(slotMtx);
-    spdlog::info("[ENODE] ищем сообщение для {}", msisdn_d);
-    auto& queue = TMSItoSlots[tmsi_s].outbox[msisdn_d];
-    SMSMessage msg = queue.front();
-    spdlog::info("Нашли: {}", msg.text);
+std::optional<SMSMessage> ENodeB::getSMStoSend(const std::string &tmsi_s, const std::string &msisdn_d) {
+    auto slotIt = TMSItoSlots.find(tmsi_s);
+    if (slotIt == TMSItoSlots.end()) {
+        spdlog::info("[ENODE] Слот для TMSI {} не найден", tmsi_s);
+        return std::nullopt;
+    }
+
+    auto& outboxMap = slotIt->second.outbox;
+    auto outboxIt = outboxMap.find(msisdn_d);
+
+    if (outboxIt == outboxMap.end() || outboxIt->second.empty()) {
+        spdlog::info("[ENODE] Очередь сообщений для {} пуста", msisdn_d);
+        return std::nullopt;
+    }
+
+    auto& queue = outboxIt->second;
+    SMSMessage msg = std::move(queue.front());
     queue.pop();
     return msg;
 }

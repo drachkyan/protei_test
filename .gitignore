@@ -6,3 +6,5 @@ TODO.MD
 CMakeCache.txt
 CMakeFiles/
 .cmake/
+docker-compose.yml
+Dockerfile

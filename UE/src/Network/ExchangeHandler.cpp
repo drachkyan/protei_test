@@ -14,8 +14,9 @@ void ExchangeHandler::handleIncomeSMS(const json &req) {
 }
 
 void ExchangeHandler::handleSMSStatus(const json &req) {
-    if (StatusCode::SUCCESS != req["status"].get<int>()) {
+    if (!req.contains("message_status")) {
         spdlog::info("Пришла ошибка");
+        return;
     }
     auto msisdn = req["MSISDN_D"].get<std::string>();
     int sms_id = req["SMS_ID"].get<int>();

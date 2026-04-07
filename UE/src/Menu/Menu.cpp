@@ -8,7 +8,6 @@
 #include "../../include/utils/utils.h"
 #include "../../include/Network/NetworkClient.h"
 #include "../../include/Menu/MenuItems/QuitItem.h"
-#include "../../include/Menu/MenuItems/RadioMesureItem.h"
 #include "../../include/Menu/MenuItems/SendSMSItem.h"
 #include "../../include/Menu/MenuItems/PrintSMSItem.h"
 
@@ -18,9 +17,6 @@ void Menu::initMenuItems() {
 
     menuItems.insert({"exit",
         std::make_unique<QuitItem>("", "")});
-
-    menuItems.insert({"send",
-        std::make_unique<RadioMeasureItem>("send", "Отправить местоположение TEST", UEex, app.getContext())});
 
     menuItems.insert({"activate",
         std::make_unique<ActivateItem>("activate", "Активировать подключение", UEex)});

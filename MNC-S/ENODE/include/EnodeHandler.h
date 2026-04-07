@@ -34,7 +34,7 @@ class EnodeHandler final
     json handleReceiveSMS(const json &req);
     json handleSendSMS(const json &req);
     json handleSMSStatus(const json &req);
-
+    json handleSendStatus(const json &req);
     json handleDisconnect(const json &req);
 
     json requestMME(const json req) const;

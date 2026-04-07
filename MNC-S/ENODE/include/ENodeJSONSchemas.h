@@ -1,6 +1,9 @@
 #pragma once
 
 #include <string>
+#include <nlohmann/json.hpp>
+
+using json = nlohmann::json;
 
 struct RadioMeasureSchema {
     std::string type = "R";

@@ -1,15 +1,18 @@
 #pragma once
 
 #include <string>
+#include <nlohmann/json.hpp>
 
-struct AuthSchema {
+using json = nlohmann::json;
+
+struct AttachSchema {
     std::string type = "A";
     std::string IMEI;
     std::string IMSI;
     std::string MSISDN;
 };
 
-NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AuthSchema, type, IMEI, IMSI, MSISDN)
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(AttachSchema, type, IMEI, IMSI, MSISDN)
 
 struct SendSMSSchemaMME {
     std::string type = "M";

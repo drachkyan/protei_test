@@ -31,7 +31,6 @@ void Exchange::run() {
     while (IN_ACTIVE) {
         auto msg = api.recvJSON();
         if (msg.empty()) {
-            spdlog::info("Сервер отключился");
             IN_ACTIVE = false;
             break;
         }
@@ -116,6 +115,7 @@ void Exchange::signalWorker() {
 }
 
 void Exchange::onDisconnect() {
+    spdlog::info("Отключение от сервера");
     IN_ACTIVE = false;
     settings.getContext().clearTMSI();
     signalCv.notify_all();
@@ -130,41 +130,42 @@ void Exchange::onDisconnect() {
     }
 }
 
-void Exchange::attach() {
+bool Exchange::attach() {
     auto enodesPower = radioMeasure();
 
     if (!enodesPower.contains("ENodes") || enodesPower["ENodes"].empty()) {
         spdlog::error("Нет доступных базовых станций");
-        return;
+        return false;
     }
 
     auto& enodes = enodesPower["ENodes"];
-    auto best = std::ranges::max_element(enodes,
-                                         [](const json& a, const json& b) {
-                                             return a["power"].get<double>() < b["power"].get<double>();
-                                         });
 
-    enodebId = (*best)["ENode"].get<int>();
-    double bestPower = (*best)["power"].get<double>();
+    std::sort(enodes.begin(), enodes.end(), [](const json& a, const json& b)
+                                  {
+                                        return a["power"].get<double>() > b["power"].get<double>();
+                                  });
 
-    spdlog::info("Лучшая станция: {} сигнал: {}", enodebId, bestPower);
+    for (auto enode : enodes) {
+        enodebId = enode["ENode"].get<int>();
 
-    auto auth_res = handleAttachRequest();
+        auto res = handleAttachRequest();
 
-    if (!auth_res.contains("TMSI")) {
-        spdlog::info("Не удалось авторизироваться к станции");
-        return;
+        if (res.contains("status") && StatusCode::SUCCESS == res["status"].get<int>()) {
+            settings.getContext().setTMSI(res["TMSI"]);
+            auto authConfirm = handleAuthResponse();
+
+            if (authConfirm.contains("status") && StatusCode::SUCCESS == authConfirm["status"].get<int>()) {
+                IN_ACTIVE = true;
+                spdlog::info("Успешно прикрепились к ENode {}", enodebId);
+                return true;
+            }
+            settings.getContext().clearTMSI();
+
+        }
     }
-    settings.getContext().setTMSI(auth_res["TMSI"]);
 
-    auto res = handleAuthResponse();
-    if (static_cast<int>(StatusCode::SUCCESS) != res["status"]) {
-        spdlog::info("Возникла ошибка подключения");
-        return;
-    }
+    return false;
 
-    IN_ACTIVE = true;
-    spdlog::info("Подключены к станции");
 }
 
 void Exchange::sendSMS(const std::string &msisdn, const std::string &msg) {
@@ -212,6 +213,7 @@ void Exchange::connect() {
         spdlog::info("Не удалось соединиться с сервером");
         return;
     }
+
     IN_ACTIVE = true;
 
     if (runThread.joinable()) {runThread.join(); }
@@ -220,7 +222,9 @@ void Exchange::connect() {
     runThread = std::thread(&Exchange::run, this);
     signalThread = std::thread(&Exchange::signalWorker, this);
 
-    attach();
+    if (!attach()) {
+        onDisconnect();
+    }
 }
 
 Exchange::Exchange(AppSettings& settings_): settings(settings_), api(settings_.getNetworkAddress()), worker(settings_, *this) {

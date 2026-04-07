@@ -42,7 +42,7 @@ public:
     void sendSMS(const std::string& msisdn, const std::string& msg);
     void sendSMSStatus(const std::string& msisdn_d, int id, MessageStatus status);
 
-    void attach();
+    bool attach();
     void connect();
 
     bool isConnected() const { return IN_ACTIVE; };

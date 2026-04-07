@@ -5,6 +5,7 @@
 #include "../include/MMEHandler.h"
 #include <spdlog/spdlog.h>
 
+#include "../../../cmake-build-debug-wsl/_deps/spdlog-src/include/spdlog/spdlog.h"
 #include "../../../model/StatusCodes/StatusCodes.h"
 #include "../../ENODE/include/ENodeB.h"
 #include "../../Utils/JsonValidator.h"
@@ -19,15 +20,20 @@ void MMEHandler::initHandlersMap() {
 }
 
 json MMEHandler::handleAttach(const json &req) {
-    auto schema = validate<AuthSchema>(req);
+    auto schema = validate<AttachSchema>(req);
     if (!schema) {
         spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
+    }
+    auto sub = xlr.findByImsi(schema->IMSI);
+
+    if (sub->msisdn != schema->MSISDN) {
+        spdlog::info("Неверные данные от клиента");
         return StatusCode::BAD_REQUEST_JSON;
     }
 
     auto TMSI = generateTMSI(TMSI_script);
     xlr.updateTmsi(schema->IMSI, TMSI);
-    auto sub = xlr.findByImsi(schema->IMSI);
 
     if (!sub) {
         spdlog::info("[MME] Неизвестный абонент");
@@ -97,7 +103,7 @@ json MMEHandler::sendSMS(ENodeB* ENodeS, int enodeD, std::string TMSI_D, std::st
 std::optional<Subscriber> MMEHandler::handleWaitAbonent(std::string MSISDN_D) {
 
     spdlog::info("Ожидание появления абонента");
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
 
     while (std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -141,6 +147,14 @@ json MMEHandler::handleSMS(const json &req) {
     }
     if (!rec) {
         spdlog::info("[MME] TTL SMS истёк, абонент {} недоступен", schema->MSISDN_D);
+        json sms_status = getJsonMessageStatus(MessageStatus::FAILED);
+        sms_status["type"] = "SMSStatus";
+        sms_status["MSISDN_D"] = rec->msisdn;
+        sms_status["TMSI"] = sender->tmsi;
+        sms_status["SMS_ID"] = schema->SMS_ID;
+        sms_status["ENode"] = schema->ENode;
+        std::promise<json> promise;
+        ENodes[schema->ENode]->pushInternalTask(Task{sms_status, std::move(promise)});
         return StatusCode::NOT_FOUND_JSON;
     }
 
