@@ -5,3 +5,4 @@ xlr.db
 TODO.MD
 CMakeCache.txt
 CMakeFiles/
+.cmake/
