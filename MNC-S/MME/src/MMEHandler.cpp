@@ -103,7 +103,7 @@ json MMEHandler::sendSMS(ENodeB* ENodeS, int enodeD, std::string TMSI_D, std::st
 std::optional<Subscriber> MMEHandler::handleWaitAbonent(std::string MSISDN_D) {
 
     spdlog::info("Ожидание появления абонента");
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
 
     while (std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(std::chrono::milliseconds(250));

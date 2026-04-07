@@ -32,7 +32,7 @@ class Exchange {
     void onDisconnect();
 public:
 
-    void shutdown() { IN_ACTIVE = false;}
+    void shutdown();
 
     json sendAndWait(json& req);
     void send(json& req);

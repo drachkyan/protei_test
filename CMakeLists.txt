@@ -68,6 +68,7 @@ set(MNC_S_SOURCES
         MNC-S/Utils/JsonValidator.h
         MNC-S/ENODE/include/ENodeJSONSchemas.h
         MNC-S/MME/include/MMEJSONSchemas.h
+        UE/include/Menu/MenuItems/DeactivateItem.h
 )
 
 set(MNC_S_LIBS

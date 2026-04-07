@@ -130,6 +130,11 @@ void Exchange::onDisconnect() {
     }
 }
 
+void Exchange::shutdown() {
+    IN_ACTIVE = false;
+    onDisconnect();
+}
+
 bool Exchange::attach() {
     auto enodesPower = radioMeasure();
 
