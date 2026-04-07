@@ -1,11 +1,6 @@
-//
-// Created by vova on 04.04.2026.
-//
-
 #include "../include/MMEHandler.h"
 #include <spdlog/spdlog.h>
 
-#include "../../../cmake-build-debug-wsl/_deps/spdlog-src/include/spdlog/spdlog.h"
 #include "../../../model/StatusCodes/StatusCodes.h"
 #include "../../ENODE/include/ENodeB.h"
 #include "../../Utils/JsonValidator.h"

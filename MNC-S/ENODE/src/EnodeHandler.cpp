@@ -2,7 +2,6 @@
 #include <spdlog/spdlog.h>
 #include <cmath>
 
-#include "../../../cmake-build-debug-wsl/_deps/spdlog-src/include/spdlog/spdlog.h"
 #include "../../../model/StatusCodes/StatusCodes.h"
 #include "../../MME/include/MMEJSONSchemas.h"
 #include "../include/ENodeB.h"

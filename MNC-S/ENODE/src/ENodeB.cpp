@@ -1,7 +1,6 @@
 #include "../include/ENodeB.h"
 
-#include "../../../cmake-build-debug-wsl/_deps/spdlog-src/include/spdlog/spdlog.h"
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 
 ENodeB::ENodeB(int id_, double x_, double power_, double radius_, MME& mme_, std::unordered_map<int, ENodeB*>& ENodes_, Sender& sender_):
