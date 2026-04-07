@@ -53,10 +53,6 @@ set(MNC_S_SOURCES
         MNC-S/ENODE/src/EnodeHandler.cpp
         MNC-S/ENODE/include/EnodeHandler.h
         model/ENode/EnodeConfig.h
-        UE/include/Menu/MenuItems/RadioMesureItem.h
-        UE/src/Settings/ArgParser.cpp
-        UE/include/Settings/ArgParser.h
-        UE/include/Menu/MenuItems/ActivateItem.h
         model/StatusCodes/StatusCodes.h
         MNC-S/MME/src/MME.cpp
         MNC-S/MME/include/MME.h
@@ -67,10 +63,11 @@ set(MNC_S_SOURCES
         MNC-S/XLR/src/XLR.cpp
         model/SMS/SMSRecord.h
         MNC-S/network/include/Sender.h
-        UE/include/Menu/MenuItems/PrintSMSItem.h
-        UE/include/Menu/MenuItems/MoveItem.h
-        MNC-S/Parser/Parser.cpp
-        MNC-S/Parser/Parser.h
+        MNC-S/Utils/Parser.cpp
+        MNC-S/Utils/Parser.h
+        MNC-S/Utils/JsonValidator.h
+        MNC-S/ENODE/include/ENodeJSONSchemas.h
+        MNC-S/MME/include/MMEJSONSchemas.h
 )
 
 set(MNC_S_LIBS
@@ -88,6 +85,7 @@ target_link_libraries(mnc_s PRIVATE ${MNC_S_LIBS})
 # UE
 
 set(UE_SOURCES
+
         UE/src/Settings/AppSettings.cpp
         UE/src/Settings/ArgParser.cpp
         UE/src/Menu/Menu.cpp
@@ -105,6 +103,9 @@ set(UE_SOURCES
         model/SMS/SMSRecord.h
         UE/src/Network/ExchangeHandler.cpp
         UE/include/Network/ExchangeHandler.h
+        UE/include/Menu/MenuItems/PrintSMSItem.h
+        UE/include/Menu/MenuItems/MoveItem.h
+        UE/include/Menu/MenuItems/ActivateItem.h
 )
 
 add_executable(ue UE/UE.cpp ${UE_SOURCES})

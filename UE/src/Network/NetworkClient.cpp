@@ -24,7 +24,6 @@ int NetworkClient::createConnection() {
     if (connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
         return 1;
     }
-    spdlog::info("Сеть обнаружена");
     connectionFlag=true;
     return 0;
 }

@@ -7,6 +7,8 @@
 
 #include "../../../model/StatusCodes/StatusCodes.h"
 #include "../../ENODE/include/ENodeB.h"
+#include "../../Utils/JsonValidator.h"
+#include "../include/MMEJSONSchemas.h"
 
 void MMEHandler::initHandlersMap() {
     handlersMap["A"] = &MMEHandler::handleAttach;
@@ -17,14 +19,15 @@ void MMEHandler::initHandlersMap() {
 }
 
 json MMEHandler::handleAttach(const json &req) {
-
-    if (!req.contains("IMSI")) {
-        spdlog::info("[MME] Нет IMSI в запросе");
-        return StatusCode::NOT_FOUND_JSON;
+    auto schema = validate<AuthSchema>(req);
+    if (!schema) {
+        spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
     }
+
     auto TMSI = generateTMSI(TMSI_script);
-    xlr.updateTmsi(req["IMSI"], TMSI);
-    auto sub = xlr.findByImsi(req["IMSI"]);
+    xlr.updateTmsi(schema->IMSI, TMSI);
+    auto sub = xlr.findByImsi(schema->IMSI);
 
     if (!sub) {
         spdlog::info("[MME] Неизвестный абонент");
@@ -38,24 +41,19 @@ json MMEHandler::handleAttach(const json &req) {
 }
 
 json MMEHandler::handleUpdateLocation(const json &req) {
-
-    if (!req.contains("TMSI")) {
-        spdlog::info("[MME] Нет TMSI в запросе");
-        return StatusCode::NOT_FOUND_JSON;
-    }
-    if (!req.contains("ENode")) {
-        spdlog::info("[MME] Не выбрана базовая станция");
-        return StatusCode::NOT_FOUND_JSON;
+    auto schema = validate<UpdateLocationSchema>(req);
+    if (!schema) {
+        spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
     }
 
-    const auto ENodeID = req["ENode"].get<int>();
-    const auto& TMSI = req["TMSI"];
-    if (!ENodes[ENodeID]->reserveSlot(TMSI)) {
+
+    if (!ENodes[schema->ENode]->reserveSlot(schema->TMSI)) {
         spdlog::info("[MME] Не получилось создать буфер ENode");
         return StatusCode::SERVER_ERROR_JSON;
     }
 
-    xlr.updateEnodeB(TMSI, ENodeID);
+    xlr.updateEnodeB(schema->TMSI, schema->ENode);
 
     return StatusCode::SUCCESS_JSON;;
 }
@@ -115,19 +113,23 @@ std::optional<Subscriber> MMEHandler::handleWaitAbonent(std::string MSISDN_D) {
 
 
 json MMEHandler::handleSMS(const json &req) {
+    auto schema = validate<SendSMSSchemaMME>(req);
+    if (!schema) {
+        spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
+    }
+
     spdlog::info("[MME] Проверка наличия абонента в сети");
 
-    const auto TMSI_S = req["TMSI_S"].get<std::string>();
-    const auto MSISDN_D = req["MSISDN_D"].get<std::string>();
-    const auto enodeS = ENodes[req["ENode"].get<int>()];
-    const auto sender = xlr.findByTmsi(TMSI_S);
+    const auto enodeS = ENodes[schema->ENode];
+    const auto sender = xlr.findByTmsi(schema->TMSI_S);
 
     if (!sender) {
         spdlog::info("[MME] Ошибка - отправитель не зарегестрирован в сети");
         return StatusCode::NOT_FOUND_JSON;
     }
     const auto MSISDN_S = sender->msisdn;
-    auto rec = xlr.findByMsisdn(MSISDN_D);
+    auto rec = xlr.findByMsisdn(schema->MSISDN_D);
 
     if (!rec) {
         spdlog::info("[MME] Ошибка - Абонента не существует в сети");
@@ -135,14 +137,14 @@ json MMEHandler::handleSMS(const json &req) {
     }
 
     if (rec->enodeb_id < 0) {
-        rec = handleWaitAbonent(MSISDN_D);
+        rec = handleWaitAbonent(schema->MSISDN_D);
     }
     if (!rec) {
-        spdlog::info("[MME] TTL SMS истёк, абонент {} недоступен", MSISDN_D);
+        spdlog::info("[MME] TTL SMS истёк, абонент {} недоступен", schema->MSISDN_D);
         return StatusCode::NOT_FOUND_JSON;
     }
 
-    std::thread(&MMEHandler::sendSMS,this, enodeS, rec->enodeb_id, rec->tmsi, TMSI_S, MSISDN_S, rec->msisdn).detach();
+    std::thread(&MMEHandler::sendSMS,this, enodeS, rec->enodeb_id, rec->tmsi, schema->TMSI_S, MSISDN_S, rec->msisdn).detach();
 
     auto res = StatusCode::SUCCESS_JSON;
 
@@ -150,19 +152,21 @@ json MMEHandler::handleSMS(const json &req) {
 }
 
 json MMEHandler::handleSMSStatus(const json &req) {
+    auto schema = validate<SendSMSStatusSchemaMME>(req);
+    if (!schema) {
+        spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
+    }
     spdlog::info("[MME] статус сообщения");
-    auto MSISDN_D = req["MSISDN_D"].get<std::string>();
-    auto SMS_ID = req["SMS_ID"].get<int>();
-    auto status = req["message_status"].get<std::string>();
-    auto TMSI = req["TMSI"].get<std::string>();
 
-    auto sender = xlr.findByMsisdn(MSISDN_D);
+
+    auto sender = xlr.findByMsisdn(schema->MSISDN_D);
 
     if (!sender || sender->enodeb_id < 0) {
         spdlog::info("[MME] отправитель не в сети");
         return StatusCode::NOT_FOUND_JSON;
     }
-    auto receiver = xlr.findByTmsi(TMSI);
+    auto receiver = xlr.findByTmsi(schema->TMSI);
     if (!receiver) {
         spdlog::info("Не найден отправитель");
         return StatusCode::NOT_FOUND_JSON;
@@ -173,21 +177,22 @@ json MMEHandler::handleSMSStatus(const json &req) {
     res["type"] = "SMSStatus";
     res["MSISDN_D"] = receiver->msisdn;
     res["TMSI"] = sender->tmsi;
-    res["SMS_ID"] = SMS_ID;
-    res["message_status"] = status;
+    res["SMS_ID"] = schema->SMS_ID;
+    res["message_status"] = schema->message_status;
 
     return res;
 }
 
 json MMEHandler::handleDisconnect(const json &req) {
+    auto schema = validate<DisconnectSchemaMME>(req);
+    if (!schema) {
+        spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
+    }
     spdlog::info("[MME] Отключение клиента");
 
-    if (!req.contains("TMSI")) {
-        return StatusCode::NOT_FOUND_JSON;
-    }
 
-    auto TMSI = req["TMSI"].get<std::string>();
-    xlr.clearTmsi(TMSI);
+    xlr.clearTmsi(schema->TMSI);
 
     return StatusCode::SUCCESS_JSON;
 }

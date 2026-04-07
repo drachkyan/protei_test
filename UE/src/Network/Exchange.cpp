@@ -90,8 +90,7 @@ json Exchange::radioMeasure() {
 void Exchange::signalWorker() {
     while (IN_ACTIVE) {
         std::unique_lock lock(signalMtx);
-        signalCv.wait_for(lock, std::chrono::seconds(5));
-        spdlog::info("Запрос станций");
+
         if (!IN_ACTIVE) break;
 
         auto res = radioMeasure();
@@ -112,13 +111,23 @@ void Exchange::signalWorker() {
         if (bestId != enodebId) {
             spdlog::info("Handover на eNode-B {}", bestId);
         }
+        signalCv.wait_for(lock, std::chrono::seconds(5));
     }
 }
 
 void Exchange::onDisconnect() {
     IN_ACTIVE = false;
+    settings.getContext().clearTMSI();
     signalCv.notify_all();
     api.close();
+
+    {
+        std::lock_guard lock(pendingMtx);
+        for (auto& [id, promise] : pending) {
+            promise.set_value(StatusCode::BAD_REQUEST_JSON);
+        }
+        pending.clear();
+    }
 }
 
 void Exchange::attach() {
@@ -204,8 +213,13 @@ void Exchange::connect() {
         return;
     }
     IN_ACTIVE = true;
+
+    if (runThread.joinable()) {runThread.join(); }
+    if (signalThread.joinable()) {signalThread.join(); }
+
     runThread = std::thread(&Exchange::run, this);
     signalThread = std::thread(&Exchange::signalWorker, this);
+
     attach();
 }
 

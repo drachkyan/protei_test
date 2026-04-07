@@ -11,8 +11,8 @@ class Exchange {
 
     int enodebId=-1;
 
-    std::thread runThread;
-    std::thread signalThread;
+    std::thread runThread{};
+    std::thread signalThread{};
     std::atomic<bool> IN_ACTIVE = false;
 
     std::unordered_map<int, std::promise<json>> pending;
@@ -26,12 +26,13 @@ class Exchange {
     json handleAuthResponse();
 
     void signalWorker();
+    void run();
+
 
     void onDisconnect();
 public:
-    void run();
 
-    void shutdown() { IN_ACTIVE = false;};
+    void shutdown() { IN_ACTIVE = false;}
 
     json sendAndWait(json& req);
     void send(json& req);
