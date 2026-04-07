@@ -37,12 +37,13 @@ json EnodeHandler::requestMME(const json req) const {
 }
 
 json EnodeHandler::handleAuth(const json &req){
+
     auto schema = validate<AttachRequestSchema>(req);
     if (!schema) {
-        spdlog::info("[ENODE] Пришел неверный запрос");
+        spdlog::info("[ENODE{}] Пришел неверный запрос", config.id);
         return StatusCode::BAD_REQUEST_JSON;
     }
-
+    spdlog::info("[ENODE{}] Запрос на авторизацию", config.id);
     json MMEreq {
             {"type", "A"},
             {"IMSI", schema->IMSI},
@@ -67,18 +68,18 @@ json EnodeHandler::handleInternalTask(const json& req) {
 
 json EnodeHandler::dispatch(const json& req, const std::unordered_map<std::string, HandlerPtr>& map) {
     if (req.empty()) {
-        spdlog::info("[ENODE] Получен пустой жсон");
+        spdlog::info("[ENODE{}] Получен пустой жсон", config.id);
         return {};
     }
     if (!req.contains("type")) {
-        spdlog::info("[ENODE] JSON в неверном формате");
+        spdlog::info("[ENODE{}] JSON в неверном формате", config.id);
         return {};
     }
     std::string type = req["type"].get<std::string>();
 
     auto it = map.find(type);
     if (it == map.end()) {
-        spdlog::error("[ENODE] неизвестный тип: {}", type);
+        spdlog::error("[ENODE{}] неизвестный тип: {}", config.id, type);
         return {};
     }
     return (this->*it->second)(req);
@@ -97,6 +98,7 @@ void EnodeHandler::proccessSMS(const json &req) {
 
 
 json EnodeHandler::handleRadioMeasure(const json &req) {
+    // spdlog::info("[ENODE{}] Запрос силы сигнала", config.id);   // -- слишком часто идет
     double pos = req["pos"].get<double>();
     json res{};
     double coef = 1 - std::abs(config.x - pos)/config.radius;
@@ -112,9 +114,10 @@ json EnodeHandler::handleRadioMeasure(const json &req) {
 json EnodeHandler::handleUpdateLocation(const json &req) {
     auto schema = validate<AuthResponseSchema>(req);
     if (!schema) {
-        spdlog::info("[ENODE] Пришел неверный запрос");
+        spdlog::info("[ENODE{}] Пришел неверный запрос", config.id);
         return StatusCode::BAD_REQUEST_JSON;
     }
+    spdlog::info("[ENODE{}] Запрос на прикрепление", config.id);
     auto newReq = req;
     newReq["type"] = "UL";
     auto res = requestMME(newReq);
@@ -128,15 +131,14 @@ json EnodeHandler::handleUpdateLocation(const json &req) {
 }
 
 json EnodeHandler::handleSendMessage(const json &req) {
-
-    spdlog::info("[ENODE] пересылка сообщения на другую базовую станцию");
+    spdlog::info("[ENODE{}] пересылка сообщения на другую базовую станцию", config.id);
     const auto& enodeD_ID = req["ENodeD"].get<int>();
     const std::string tmsi_d = req["TMSI_D"].get<std::string>();
     const std::string tmsi_s = req["TMSI_S"].get<std::string>();
     const std::string msisdn_s = req["MSISDN_S"].get<std::string>();
 
     if (!ENodes.contains(enodeD_ID)) {
-        spdlog::info("[ENODE] Не найдена базовая станция");
+        spdlog::info("[ENODE{}] Не найдена базовая станция", config.id);
     }
 
     auto enodeD = ENodes[enodeD_ID];
@@ -144,7 +146,7 @@ json EnodeHandler::handleSendMessage(const json &req) {
 
     auto SMS = enodeS->getSMStoSend(tmsi_s, req["MSISDN_D"]);
     if (!SMS) {
-        spdlog::info("[ENODE] Собщение не найдено");
+        spdlog::info("[ENODE{}] Собщение не найдено", config.id);
         return StatusCode::SERVER_ERROR_JSON;
     }
     SMS->msisdn_src = msisdn_s;
@@ -166,10 +168,10 @@ json EnodeHandler::handleSendMessage(const json &req) {
 json EnodeHandler::handleMessage(const json &req) {
     auto schema = validate<SendSMSSchema>(req);
     if (!schema) {
-        spdlog::info("[ENODE] Пришел неверный запрос");
+        spdlog::info("[ENODE{}] Пришел неверный запрос", config.id);
         return StatusCode::BAD_REQUEST_JSON;
     }
-    spdlog::info("[ENODE] получено сообщение");
+    spdlog::info("[ENODE{}] получено сообщение", config.id);
     std::thread(&EnodeHandler::proccessSMS, this, req).detach();
     return StatusCode::SUCCESS_JSON;
 }
@@ -184,7 +186,7 @@ json EnodeHandler::handleReceiveSMS(const json &req) {
 json EnodeHandler::handleSendSMS(const json &req) {
     auto TMSI_D = req["TMSI_D"].get<std::string>();
     auto SMS = ENodes[config.id]->getSMSbyTMSI(TMSI_D);
-    spdlog::info("[ENODE] Отправка СМС пользователю {}, текст смс [ {} ]", TMSI_D, SMS.text);
+    spdlog::info("[ENODE{}] Отправка СМС пользователю {}, текст смс [ {} ]", config.id, TMSI_D, SMS.text);
     json sms_json = SMS;
     sms_json["type"] = "SMS";
     sender.sendByTMSI(TMSI_D, sms_json);
@@ -194,10 +196,10 @@ json EnodeHandler::handleSendSMS(const json &req) {
 json EnodeHandler::handleSMSStatus(const json &req) {
     auto schema = validate<SendSMSStatusSchema>(req);
     if (!schema) {
-        spdlog::info("[ENODE] Пришел неверный запрос");
+        spdlog::info("[ENODE{}] Пришел неверный запрос", config.id);
         return StatusCode::BAD_REQUEST_JSON;
     }
-    spdlog::info("[ENODE] Статус сообщения");
+    spdlog::info("[ENODE{}] Пришел статус сообщения", config.id);
 
     std::thread([this, req]() {
         auto res = requestMME(req);
@@ -219,9 +221,10 @@ json EnodeHandler::handleSMSStatus(const json &req) {
 json EnodeHandler::handleSendStatus(const json &req) {
     auto schema = validate<SendSMSStatusSchema>(req);
     if (!schema) {
-        spdlog::info("[ENODE] Пришел неверный запрос");
+        spdlog::info("[ENODE{}] Пришел неверный запрос", config.id);
         return StatusCode::BAD_REQUEST_JSON;
     }
+    spdlog::info("[ENODE{}] Запрос на статус сообщения", config.id);
     ENodes[config.id]->deleteSMSfromSlot(schema->TMSI, schema->MSISDN_D);
     sender.sendByTMSI(schema->TMSI, req);
     return StatusCode::SUCCESS_JSON;
@@ -230,10 +233,10 @@ json EnodeHandler::handleSendStatus(const json &req) {
 json EnodeHandler::handleDisconnect(const json &req) {
     auto schema = validate<DisconnectSchema>(req);
     if (!schema) {
-        spdlog::info("[ENODE] Пришел неверный запрос");
+        spdlog::info("[ENODE{}] Пришел неверный запрос", config.id);
         return StatusCode::BAD_REQUEST_JSON;
     }
-    spdlog::info("[ENODE] Отключаем клиента");
+    spdlog::info("[ENODE{}] Отключаем клиента", config.id);
     auto TMSI = schema->TMSI;
 
     ENodes[config.id]->releaseSlot(TMSI);

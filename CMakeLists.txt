@@ -41,11 +41,11 @@ find_package(SQLite3 REQUIRED)  # это тоже libsqlite3-dev
 # MNC-S
 
 set(MNC_S_SOURCES
-        MNC-S/network/src/Gateway.cpp
-        MNC-S/network/include/Gateway.h
+        MNC-S/network/src/UEConnection.cpp
+        MNC-S/network/include/UEconnection.h
         model/Handler/RequestHandler.h
-        MNC-S/network/src/Transport.cpp
-        MNC-S/network/include/Transport.h
+        MNC-S/network/src/Listener.cpp
+        MNC-S/network/include/Listener.h
         model/Context/Context.cpp
         model/Context/Context.h
         MNC-S/ENODE/src/ENodeB.cpp

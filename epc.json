@@ -2,7 +2,7 @@
   "ttl_connections": 120000,
   "hlr_format": "sql",
   "hlr_provider": "sqlite",
-  "hlr_path": "hlr.db",
+  "hlr_path": "xlr.db",
   "ttl_ue_context": 30000,
   "ttl_sms": 20000,
   "tmsi_script": "generate_tmsi.py",

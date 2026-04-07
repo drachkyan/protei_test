@@ -27,7 +27,7 @@ struct OpContext {
 
 using Handler = std::function<void(OpContext*, int)>;
 
-class Transport {
+class Listener {
 
 protected:
     io_uring ring{};
@@ -53,10 +53,10 @@ private:
 
 
 public:
-    Transport(int PORT_);
+    Listener(int PORT_);
 
     void run();
 
-    virtual ~Transport() = default;
+    virtual ~Listener() = default;
 
 };

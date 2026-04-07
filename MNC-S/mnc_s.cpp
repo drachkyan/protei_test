@@ -1,4 +1,4 @@
-#include "network/include/Gateway.h"
+#include "network/include/UEconnection.h"
 #include "ENODE/include/ENodeB.h"
 #include "Utils/Parser.h"
 
@@ -16,7 +16,7 @@ int main(int argc, char* argv[]) {
     std::unordered_map<int, ENodeB*> ENodes;
 
 
-    Gateway gw(8085, ENodes);
+    UEconnection gw(8085, ENodes);
 
     std::vector<std::unique_ptr<ENodeB>> enodeObjects;
     std::vector<std::thread> threads;

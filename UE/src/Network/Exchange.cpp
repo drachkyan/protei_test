@@ -108,7 +108,7 @@ void Exchange::signalWorker() {
         auto bestId = (*best)["ENode"].get<int>();
 
         if (bestId != enodebId) {
-            spdlog::info("Handover на eNode-B {}", bestId);
+            // код хендовера
         }
         signalCv.wait_for(lock, std::chrono::seconds(5));
     }

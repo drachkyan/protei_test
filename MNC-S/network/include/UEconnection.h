@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/Transport.h"
+#include "../include/Listener.h"
 #include "../../ENODE/include/ENodeB.h"
 #include "Sender.h"
 
@@ -12,7 +12,7 @@ struct ClientState {
     std::string tmsi{};
 };
 
-class Gateway : public Transport, public Sender{
+class UEconnection : public Listener, public Sender{
 
     std::unordered_map<int, ClientState> clients;
     std::unordered_map<std::string, int> tmsiToFd;
@@ -30,6 +30,6 @@ class Gateway : public Transport, public Sender{
     void onSend(const OpContext *ctx, int res) override;
     void sendJSON(int fd, const json& msg);
 public:
-    Gateway(int PORT_, std::unordered_map<int, ENodeB*>& ENodes_): Transport(PORT_), ENodes(ENodes_){};
+    UEconnection(int PORT_, std::unordered_map<int, ENodeB*>& ENodes_): Listener(PORT_), ENodes(ENodes_){};
     void sendByTMSI(const std::string &tmsi, const json &msg) override;
 };

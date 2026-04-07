@@ -1,9 +1,9 @@
-#include "../include/Gateway.h"
+#include "../include/UEconnection.h"
 
 #include <netinet/in.h>
 #include "../../../model/StatusCodes/StatusCodes.h"
 
-json Gateway::handleManyNodes(json &req) const {
+json UEconnection::handleManyNodes(json &req) const {
 
     std::vector<std::future<json>> futures;
     json res{};
@@ -25,7 +25,7 @@ json Gateway::handleManyNodes(json &req) const {
     return res;
 }
 
-json Gateway::handleNode(json &req, int id) const {
+json UEconnection::handleNode(json &req, int id) const {
     json res{};
     if (ENodes.find(id) == ENodes.end()) {
         spdlog::info("Не найдена базовая станция");
@@ -41,7 +41,7 @@ json Gateway::handleNode(json &req, int id) const {
 
 }
 
-json Gateway::packageProcess(const char *buf, int client_fd) {
+json UEconnection::packageProcess(const char *buf, int client_fd) {
     json req = json::parse(buf);
     if (!req.contains("id")) {
         spdlog::info("Неправильный запрос - отстуствует айди");
@@ -68,7 +68,7 @@ json Gateway::packageProcess(const char *buf, int client_fd) {
     return res;
 }
 
-void Gateway::onAccept(OpContext *ctx, int res) {
+void UEconnection::onAccept(OpContext *ctx, int res) {
     if (res < 0) {
         spdlog::info("ошибка\n");
         return;
@@ -83,7 +83,7 @@ void Gateway::onAccept(OpContext *ctx, int res) {
     io_uring_submit(&ring);
 }
 
-void Gateway::onRecv(OpContext *ctx, int res) {
+void UEconnection::onRecv(OpContext *ctx, int res) {
 
     if (res <= 0) {
 
@@ -148,7 +148,7 @@ void Gateway::onRecv(OpContext *ctx, int res) {
     io_uring_submit(&ring);
 }
 
-void Gateway::onSend(const OpContext *ctx, int res) {
+void UEconnection::onSend(const OpContext *ctx, int res) {
     if (res < 0) {
         spdlog::info("ошибка отправки: {}\n", std::strerror(-res));
         return;
@@ -159,7 +159,7 @@ void Gateway::onSend(const OpContext *ctx, int res) {
     }
 }
 
-void Gateway::sendJSON(int fd, const json &msg) {
+void UEconnection::sendJSON(int fd, const json &msg) {
     std::string data = msg.dump();
     uint32_t len = htonl(data.size());
     addSend(fd, reinterpret_cast<const char*>(&len), sizeof(len));
@@ -167,7 +167,7 @@ void Gateway::sendJSON(int fd, const json &msg) {
     io_uring_submit(&ring);
 }
 
-void Gateway::sendByTMSI(const std::string& tmsi, const json& msg) {
+void UEconnection::sendByTMSI(const std::string& tmsi, const json& msg) {
     if (!tmsiToFd.contains(tmsi)) {
         spdlog::info("[UEC] Не найден клиент");
         return;
