@@ -1,6 +1,6 @@
 #include "network/include/Gateway.h"
 #include "ENODE/include/ENodeB.h"
-#include "Parser/Parser.h"
+#include "Utils/Parser.h"
 
 int main(int argc, char* argv[]) {
     const std::string enodePath = "bases.json";

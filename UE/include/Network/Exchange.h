@@ -26,12 +26,13 @@ class Exchange {
     json handleAuthResponse();
 
     void signalWorker();
+    void run();
+
 
     void onDisconnect();
 public:
-    void run();
 
-    void shutdown() { IN_ACTIVE = false;};
+    void shutdown() { IN_ACTIVE = false;}
 
     json sendAndWait(json& req);
     void send(json& req);

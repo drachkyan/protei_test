@@ -3,3 +3,5 @@ build/
 cmake-build-debug-wsl/
 xlr.db
 TODO.MD
+CMakeCache.txt
+CMakeFiles/

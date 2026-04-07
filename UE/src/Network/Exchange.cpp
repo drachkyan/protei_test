@@ -203,9 +203,11 @@ void Exchange::connect() {
         spdlog::info("Не удалось соединиться с сервером");
         return;
     }
+    spdlog::info("[EX] Начало работы");
     IN_ACTIVE = true;
     runThread = std::thread(&Exchange::run, this);
     signalThread = std::thread(&Exchange::signalWorker, this);
+
     attach();
 }
 
