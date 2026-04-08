@@ -7,7 +7,6 @@ int main(const int argc, char* argv[]) {
     p.parse(argc, argv);
     auto settings = p.build();
 
-
     Menu menu(settings);
     menu.run();
     return 0;

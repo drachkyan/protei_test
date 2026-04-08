@@ -1,9 +1,7 @@
 #include "../include/EnodeHandler.h"
 #include <spdlog/spdlog.h>
 #include <cmath>
-
 #include "../../../model/StatusCodes/StatusCodes.h"
-#include "../../MME/include/MMEJSONSchemas.h"
 #include "../include/ENodeB.h"
 #include "../include/ENodeJSONSchemas.h"
 #include "../../Utils/JsonValidator.h"
@@ -16,6 +14,7 @@ void EnodeHandler::initHandlersMap() {
         handlersMap["M"] = &EnodeHandler::handleMessage;
         handlersMap["DC"] = &EnodeHandler::handleDisconnect;
         handlersMap["SMSStatus"] = &EnodeHandler::handleSMSStatus;
+        handlersMap["H"] = &EnodeHandler::handleHandover;
     }
     {
         handlersInternalMap["SM"] = &EnodeHandler::handleSendMessage;
@@ -24,13 +23,15 @@ void EnodeHandler::initHandlersMap() {
         handlersInternalMap["SMSStatus"] = &EnodeHandler::handleSendStatus;
     }
 
-
 }
 
-json EnodeHandler::requestMME(const json req) const {
+json EnodeHandler::requestMME(const json req, bool wait_flag) const {
     std::promise<json> promise;
     auto futureRes = promise.get_future();
     mme.push(MMETask{req,std::move(promise)});
+    if (!wait_flag) {
+        return {};
+    }
     auto res = futureRes.get();
     return res;
 }
@@ -243,6 +244,25 @@ json EnodeHandler::handleDisconnect(const json &req) {
 
     auto a = requestMME(req);
 
+    return StatusCode::SUCCESS_JSON;
+}
+
+json EnodeHandler::handleHandover(const json &req) {
+    auto schema = validate<HandoverRequestSchema>(req);
+    if (!schema) {
+        spdlog::info("[ENODE{}] Пришел неверный запрос", config.id);
+        return StatusCode::BAD_REQUEST_JSON;
+    }
+    spdlog::info("[ENODE{}] Handover процедура");
+    auto slotToHandover = ENodes[config.id]->detachSlot(schema->TMSI);
+    if (!slotToHandover) {
+        spdlog::info("[ENODE{}] Слот не найден", config.id);
+        return StatusCode::BAD_REQUEST_JSON;
+    }
+    ENodes[schema->ENode_D]->handover(schema->TMSI, *slotToHandover);
+    auto MMEreq = req;
+    MMEreq.erase("ENode");
+    auto res = requestMME(MMEreq, false);
     return StatusCode::SUCCESS_JSON;
 }
 

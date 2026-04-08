@@ -1,10 +1,18 @@
 #include "network/include/UEconnection.h"
 #include "ENODE/include/ENodeB.h"
 #include "Utils/Parser.h"
+#include "Utils/ArgParcerMNC.h"
 
 int main(int argc, char* argv[]) {
-    const std::string enodePath = "bases.json";
-    const std::string epcPath   = "epc.json";
+    ArgParserMNC argParser;
+    argParser.parse(argc, argv);
+    if (!argParser.isValid()) {
+        spdlog::info("Неверные аргументы запуска");
+        return 1;
+    }
+    const std::string enodePath = argParser.getBasesJsonPath();
+    const std::string epcPath   = argParser.getEpcJsonPath();
+    int port = argParser.getPort();
 
     EPCConfig epc = parseEPC(epcPath);
     auto enodeConfigs = parseBases(enodePath);
@@ -16,7 +24,7 @@ int main(int argc, char* argv[]) {
     std::unordered_map<int, ENodeB*> ENodes;
 
 
-    UEconnection gw(8085, ENodes);
+    UEconnection gw(port, ENodes);
 
     std::vector<std::unique_ptr<ENodeB>> enodeObjects;
     std::vector<std::thread> threads;

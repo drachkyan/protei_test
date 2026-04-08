@@ -29,7 +29,7 @@ public:
     void move(int x_) { x = x_;}
     int getX() const {return x;}
     void setTMSI(std::string TMSI_);
-    void clearTMSI() {TMSI = "";}
+    void clearTMSI() {TMSI.clear();}
 
     Context(std::string IMSI, std::string IMEI, std::string MSISDN, int x_);
 

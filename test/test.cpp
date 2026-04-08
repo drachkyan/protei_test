@@ -1,14 +1,12 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 #include "spdlog/spdlog.h"
-
 #include "../MNC-S/ENODE/include/ENodeB.h"
 #include "../UE/include/Network/NetworkAddress.h"
 #include "../UE/include/Network/Exchange.h"
 #include "../UE/include/utils/utils.h"
 #include "../UE/include/Settings/ArgParser.h"
 #include "../MNC-S/XLR/include/XLR.h"
-
 
 
 using json = nlohmann::json;

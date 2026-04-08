@@ -1,6 +1,11 @@
 #include "../../include/Network/Exchange.h"
 #include "../../../model/StatusCodes/StatusCodes.h"
 
+bool Exchange::isHandoverNeeded(double cur, double best) {
+    const double THRESHOLD = 0.1;
+    return (best - cur) > THRESHOLD;
+}
+
 json Exchange::handleAttachRequest() {
     json req = {
         {"type", "A"},
@@ -55,7 +60,6 @@ void Exchange::run() {
 json Exchange::sendAndWait(json &req) {
     int id = ++requestId;
     req["id"] = id;
-
     std::promise<json> promise;
     auto future = promise.get_future();
     {
@@ -86,11 +90,42 @@ json Exchange::radioMeasure() {
     return res;
 }
 
+void Exchange::handleStationLoss() {
+    spdlog::info("Вышли за пределы базовой станции {} - переподключаемся", enodebId);
+    onDisconnect();
+
+    std::thread([this]() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(300));
+        connect();
+    }).detach();
+
+}
+
+void Exchange::checkAndPerformHandover(const json& enodes, double currentPower) {
+
+    auto bestIt = std::ranges::max_element(enodes, [](const json& a, const json& b) {
+        return a["power"].get<double>() < b["power"].get<double>();
+    });
+
+    if (bestIt == enodes.end()) {
+        return;
+    }
+    int bestId = (*bestIt)["ENode"].get<int>();
+    double bestPower = (*bestIt)["power"].get<double>();
+    if (bestId != enodebId && isHandoverNeeded(currentPower, bestPower)) {
+
+        if (handover(bestId)) {
+            enodebId = bestId;
+        }
+    }
+}
+
 void Exchange::signalWorker() {
+    double currentPower = -1;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
     while (IN_ACTIVE) {
         std::unique_lock lock(signalMtx);
-
-        if (!IN_ACTIVE) break;
+        signalCv.wait_for(lock, std::chrono::seconds(2));
 
         auto res = radioMeasure();
         if (!res.contains("ENodes") || res["ENodes"].empty()) {
@@ -100,38 +135,52 @@ void Exchange::signalWorker() {
         }
 
         auto& enodes = res["ENodes"];
-        auto best = std::ranges::max_element(enodes,
-            [](const json& a, const json& b) {
-                return a["power"].get<double>() < b["power"].get<double>();
-            });
+        auto currentIt = std::ranges::find_if(enodes, [this](const json& node) {
+            return node["ENode"].get<int>() == enodebId;
+        });
 
-        auto bestId = (*best)["ENode"].get<int>();
-
-        if (bestId != enodebId) {
-            // код хендовера
+        if (currentIt == enodes.end()) {
+            handleStationLoss();
+            continue;
         }
-        signalCv.wait_for(lock, std::chrono::seconds(5));
+
+        currentPower = (*currentIt)["power"].get<double>();
+        checkAndPerformHandover(enodes, currentPower);
+
+
     }
 }
 
 void Exchange::onDisconnect() {
+    if (!IN_ACTIVE) return;
     spdlog::info("Отключение от сервера");
     IN_ACTIVE = false;
     settings.getContext().clearTMSI();
     signalCv.notify_all();
     api.close();
 
-    {
-        std::lock_guard lock(pendingMtx);
-        for (auto& [id, promise] : pending) {
-            promise.set_value(StatusCode::BAD_REQUEST_JSON);
-        }
-        pending.clear();
+    std::lock_guard lock(pendingMtx);
+    for (auto& [id, promise] : pending) {
+        promise.set_value(StatusCode::BAD_REQUEST_JSON);
     }
+    pending.clear();
+}
+
+bool Exchange::handover(int ENode_) {
+    json req{
+        {"type", "H"},
+        {"TMSI", settings.getContext().getTMSI()},
+        {"ENode", enodebId},
+        {"ENode_D", ENode_}
+    };
+    auto res = sendAndWait(req);
+    if (!res.contains("status") || StatusCode::SUCCESS != res["status"].get<int>()) {
+        return false;
+    }
+    return true;
 }
 
 void Exchange::shutdown() {
-    IN_ACTIVE = false;
     onDisconnect();
 }
 
@@ -221,7 +270,7 @@ void Exchange::connect() {
 
     IN_ACTIVE = true;
 
-    if (runThread.joinable()) {runThread.join(); }
+    if (runThread.joinable()) { runThread.join(); }
     if (signalThread.joinable()) {signalThread.join(); }
 
     runThread = std::thread(&Exchange::run, this);

@@ -1,5 +1,4 @@
 #include "../include/ENodeB.h"
-
 #include <spdlog/spdlog.h>
 
 
@@ -68,7 +67,7 @@ void ENodeB::pushInternalTask(Task msg) {
 }
 
 bool ENodeB::hasFreeSlot() const {
-    spdlog::info("{}",TMSItoSlots.size());
+    spdlog::info("[ENODE{}] Количество подключений сейчас = {}",config.id, TMSItoSlots.size()+1);
     return TMSItoSlots.size() <= MAX_CONNECTIONS - 1;  // сначала сравниаем поэтому минус один
 }
 
@@ -88,6 +87,26 @@ bool ENodeB::reserveSlot(const std::string& tmsi) {
 void ENodeB::releaseSlot(const std::string& tmsi) {
     std::lock_guard lock(slotMtx);
     TMSItoSlots.erase(tmsi);
+}
+
+void ENodeB::handover(std::string tmsi, Slot slot) {
+    std::lock_guard lock(slotMtx);
+
+    TMSItoSlots[tmsi] = std::move(slot);
+
+    spdlog::info("[ENODE {}] Принят handover для TMSI {}. Буфер перенесен.", config.id, tmsi);
+}
+
+std::optional<Slot> ENodeB::detachSlot(const std::string &tmsi) {
+    std::lock_guard lock(slotMtx);
+    auto it = TMSItoSlots.find(tmsi);
+    if (it != TMSItoSlots.end()) {
+        Slot movedSlot = std::move(it->second);
+        TMSItoSlots.erase(it);
+
+        return movedSlot;
+    }
+    return std::nullopt;
 }
 
 void ENodeB::addSMStoSlot(const std::string &tmsi_s, const std::string &msisdn_d, SMSMessage &msg) {

@@ -12,6 +12,7 @@ void MMEHandler::initHandlersMap() {
     handlersMap["M"] = &MMEHandler::handleSMS;
     handlersMap["DC"] = &MMEHandler::handleDisconnect;
     handlersMap["SMSStatus"] = &MMEHandler::handleSMSStatus;
+    handlersMap["H"] = &MMEHandler::handleHandover;
 }
 
 json MMEHandler::handleAttach(const json &req) {
@@ -20,6 +21,7 @@ json MMEHandler::handleAttach(const json &req) {
         spdlog::info("[ENODE] Пришел неверный запрос");
         return StatusCode::BAD_REQUEST_JSON;
     }
+    spdlog::info("[MME] Проверка информации о клиенте");
     auto sub = xlr.findByImsi(schema->IMSI);
 
     if (sub->msisdn != schema->MSISDN) {
@@ -42,12 +44,13 @@ json MMEHandler::handleAttach(const json &req) {
 }
 
 json MMEHandler::handleUpdateLocation(const json &req) {
+
     auto schema = validate<UpdateLocationSchema>(req);
     if (!schema) {
         spdlog::info("[ENODE] Пришел неверный запрос");
         return StatusCode::BAD_REQUEST_JSON;
     }
-
+    spdlog::info("[MME] Обновление привязки клиента");
 
     if (!ENodes[schema->ENode]->reserveSlot(schema->TMSI)) {
         spdlog::info("[MME] Не получилось создать буфер ENode");
@@ -60,6 +63,7 @@ json MMEHandler::handleUpdateLocation(const json &req) {
 }
 
 std::string MMEHandler::generateTMSI(std::string& scriptPath){
+    spdlog::info("[MME] Генерация ТМСИ");
     const std::string cmd = "python3 " + scriptPath;
     FILE* pipe = popen(cmd.c_str(), "r");
     if (!pipe) {
@@ -96,8 +100,7 @@ json MMEHandler::sendSMS(ENodeB* ENodeS, int enodeD, std::string TMSI_D, std::st
 }
 
 std::optional<Subscriber> MMEHandler::handleWaitAbonent(std::string MSISDN_D) {
-
-    spdlog::info("Ожидание появления абонента");
+    spdlog::info("[MME] Ожидание появления абонента");
     auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
 
     while (std::chrono::steady_clock::now() < deadline) {
@@ -119,8 +122,7 @@ json MMEHandler::handleSMS(const json &req) {
         spdlog::info("[ENODE] Пришел неверный запрос");
         return StatusCode::BAD_REQUEST_JSON;
     }
-
-    spdlog::info("[MME] Проверка наличия абонента в сети");
+    spdlog::info("[MME] Новое сообщение");
 
     const auto enodeS = ENodes[schema->ENode];
     const auto sender = xlr.findByTmsi(schema->TMSI_S);
@@ -166,7 +168,7 @@ json MMEHandler::handleSMSStatus(const json &req) {
         spdlog::info("[ENODE] Пришел неверный запрос");
         return StatusCode::BAD_REQUEST_JSON;
     }
-    spdlog::info("[MME] статус сообщения");
+    spdlog::info("[MME] Обработка статуса сообщения");
 
 
     auto sender = xlr.findByMsisdn(schema->MSISDN_D);
@@ -190,6 +192,17 @@ json MMEHandler::handleSMSStatus(const json &req) {
     res["message_status"] = schema->message_status;
 
     return res;
+}
+
+json MMEHandler::handleHandover(const json &req) {
+    auto schema = validate<HandoverSchemaMME>(req);
+    if (!schema) {
+        spdlog::info("[ENODE] Пришел неверный запрос");
+        return StatusCode::BAD_REQUEST_JSON;
+    }
+    spdlog::info("[MME] Перепривязка ENode");
+    xlr.updateEnodeB(schema->TMSI, schema->ENode_D);
+    return StatusCode::SUCCESS_JSON;
 }
 
 json MMEHandler::handleDisconnect(const json &req) {

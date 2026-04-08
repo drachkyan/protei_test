@@ -51,3 +51,11 @@ struct DisconnectSchemaMME {
 };
 
 NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(DisconnectSchemaMME, type, TMSI)
+
+struct HandoverSchemaMME {
+    std::string type = "H";
+    std::string TMSI;
+    int ENode_D;
+};
+
+NLOHMANN_DEFINE_TYPE_NON_INTRUSIVE(HandoverSchemaMME, type, TMSI, ENode_D)

@@ -19,7 +19,7 @@ cmake --build build
 
 Запуск сервера
 ``` 
-./build/mnc_s
+./build/mnc_s -p 8085 -epc epc.json -bases bases.json
 ```
 
 Запуск клиента

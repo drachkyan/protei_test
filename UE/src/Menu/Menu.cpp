@@ -45,7 +45,7 @@ void Menu::run() {
     MENU_EXITS EXIT_CODE = MENU_EXITS::DEFAULT;
     std::string command;
     while (EXIT_CODE == MENU_EXITS::DEFAULT ) {
-        std::cout << "> " << std::flush;
+        std::cout << std::flush;
         if (!std::getline(std::cin, command)) {
             if (std::cin.eof()) {
                 spdlog::info("Достигнут конец потока (EOF)");
