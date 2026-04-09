@@ -6,7 +6,7 @@
   "ttl_ue_context": 30000,
   "ttl_sms": 20000,
   "tmsi_script": "generate_tmsi.py",
-  "xdr_format": "log",
-  "xdr_provider": "file",
+  "xdr_format": "[%Y-%m-%d %H:%M:%S.%e] [%l] %v",
+  "xdr_provider": "both",
   "xdr_path": "xdr.log"
 }

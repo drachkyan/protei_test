@@ -16,6 +16,8 @@ class MMEHandler final : public RequestHandler {
     std::string TMSI_script;
     std::unordered_map<int, ENodeB*>& ENodes;
 
+    const int TTL_SMS;
+
     void initHandlersMap();
 
     json handleAttach(const json& req);
@@ -33,7 +35,7 @@ class MMEHandler final : public RequestHandler {
     json handleHandover(const json& req);
     json handleDisconnect(const json& req);
 public:
-    MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& ENodes_);
+    MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& ENodes_, int TTL_SMS_);
     json handle(const json& req) override;
     ~MMEHandler() override = default;
 };

@@ -1,8 +1,8 @@
 #include "../include/MME.h"
 #include "../../ENODE/include/ENodeB.h"
 
-MME::MME(const std::string& path)
-        : worker(std::make_unique<MMEHandler>(path, xlr, ENodes)), xlr("xlr.db") {}
+MME::MME(const std::string& pythonPath, int TTL_SMS_, const std::string& xlrPath)
+        : worker(std::make_unique<MMEHandler>(pythonPath, xlr, ENodes, TTL_SMS_)), xlr(xlrPath) {}
 
 
 void MME::add_ENode(int id, ENodeB* enode) {

@@ -45,8 +45,7 @@ Listener::Listener(int PORT_):
 
 void Listener::run() {
     if (!init()) {
-        spdlog::info("Сервер не запущен");
-        return;
+        throw std::runtime_error("Сервер не запущен");
     }
 
     addAccept();
