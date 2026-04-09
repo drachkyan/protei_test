@@ -141,13 +141,13 @@ set(TEST_SOURCES
         test/test.cpp
 )
 
-#add_executable(run_tests ${TEST_SOURCES})
-#
-#target_link_libraries(run_tests PRIVATE
-#        ${MNC_S_LIBS}
-#        GTest::gtest_main
-#        GTest::gtest
-#)
-#
-#enable_testing()
-#add_test(NAME AllProjectTests COMMAND run_tests)
+add_executable(run_tests ${TEST_SOURCES})
+
+target_link_libraries(run_tests PRIVATE
+        ${MNC_S_LIBS}
+        GTest::gtest_main
+        GTest::gtest
+)
+
+enable_testing()
+add_test(NAME AllProjectTests COMMAND run_tests)

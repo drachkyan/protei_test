@@ -123,7 +123,7 @@ TEST(MMEHandlerTest, HandleInvalidJSON) {
 
     XLR xlr("dummy.db");
     std::unordered_map<int, ENodeB*> enodes;
-    MMEHandler handler("gen_tmsi.py", xlr, enodes);
+    MMEHandler handler("gen_tmsi.py", xlr, enodes, 20000);
     
     json empty_req = json::object();
     json res = handler.handle(empty_req);
