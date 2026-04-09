@@ -37,6 +37,16 @@ int NetworkClient::createConnection() {
         return 1;
     }
 
+    int err = 0;
+    socklen_t len = sizeof(err);
+    getsockopt(fd, SOL_SOCKET, SO_ERROR, &err, &len);
+    if (err != 0) {
+        spdlog::error("Нет доступа к серверу MNC");
+        ::close(fd);
+        fd = -1;
+        return 1;
+    }
+
     fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
     connectionFlag=true;
     spdlog::info("Подключились");

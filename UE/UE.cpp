@@ -1,7 +1,6 @@
 #include "include/Menu/Menu.h"
 #include "include/Settings/ArgParser.h"
 
-
 int main(const int argc, char* argv[]) {
     ArgParser p;
     p.parse(argc, argv);
