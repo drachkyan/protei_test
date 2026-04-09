@@ -24,6 +24,11 @@ json MMEHandler::handleAttach(const json &req) {
     spdlog::info("[MME] Проверка информации о клиенте");
     auto sub = xlr.findByImsi(schema->IMSI);
 
+    if (!sub) {
+        spdlog::info("[MME] Неизвестный абонент");
+        return StatusCode::NOT_FOUND_JSON;
+    }
+
     if (sub->msisdn != schema->MSISDN) {
         spdlog::info("Неверные данные от клиента");
         return StatusCode::BAD_REQUEST_JSON;
@@ -32,10 +37,6 @@ json MMEHandler::handleAttach(const json &req) {
     auto TMSI = generateTMSI(TMSI_script);
     xlr.updateTmsi(schema->IMSI, TMSI);
 
-    if (!sub) {
-        spdlog::info("[MME] Неизвестный абонент");
-        return StatusCode::NOT_FOUND_JSON;
-    }
 
 
     auto res = StatusCode::SUCCESS_JSON;
@@ -146,7 +147,7 @@ json MMEHandler::handleSMS(const json &req) {
         spdlog::info("[MME] TTL SMS истёк, абонент {} недоступен", schema->MSISDN_D);
         json sms_status = getJsonMessageStatus(MessageStatus::FAILED);
         sms_status["type"] = "SMSStatus";
-        sms_status["MSISDN_D"] = rec->msisdn;
+        sms_status["MSISDN_D"] = schema->MSISDN_D;
         sms_status["TMSI"] = sender->tmsi;
         sms_status["SMS_ID"] = schema->SMS_ID;
         sms_status["ENode"] = schema->ENode;

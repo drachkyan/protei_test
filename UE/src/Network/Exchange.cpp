@@ -67,6 +67,14 @@ json Exchange::sendAndWait(json &req) {
         pending[id] = std::move(promise);
     }
     api.sendJSON(req);
+    if (!IN_ACTIVE) {
+        auto it = pending.find(id);
+        if (it != pending.end()) {
+            it->second.set_value(StatusCode::BAD_REQUEST_JSON);
+            pending.erase(it);
+        }
+        return {};
+    }
     return future.get();
 }
 
@@ -158,7 +166,6 @@ void Exchange::onDisconnect() {
     settings.getContext().clearTMSI();
     signalCv.notify_all();
     api.close();
-
     std::lock_guard lock(pendingMtx);
     for (auto& [id, promise] : pending) {
         promise.set_value(StatusCode::BAD_REQUEST_JSON);

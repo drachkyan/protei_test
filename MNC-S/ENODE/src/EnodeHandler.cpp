@@ -225,7 +225,10 @@ json EnodeHandler::handleSendStatus(const json &req) {
         return StatusCode::BAD_REQUEST_JSON;
     }
     spdlog::info("[ENODE{}] Запрос на статус сообщения", config.id);
-    ENodes[config.id]->deleteSMSfromSlot(schema->TMSI, schema->MSISDN_D);
+    auto flag = ENodes[config.id]->deleteSMSfromSlot(schema->TMSI, schema->MSISDN_D);
+    if (!flag) {
+        return StatusCode::BAD_REQUEST_JSON;
+    }
     sender.sendByTMSI(schema->TMSI, req);
     return StatusCode::SUCCESS_JSON;
 }

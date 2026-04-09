@@ -19,7 +19,7 @@ struct MMETask {
 class MME {
     XLR xlr; // сначала бд тк для воркера нужно бд
 
-    const int MAX_THREADS = 10;
+    const int MAX_THREADS = 100;
     std::unique_ptr<MMEHandler> worker;
     std::atomic<bool> stop = false;
     std::unordered_map<int, ENodeB*> ENodes;

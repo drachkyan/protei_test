@@ -116,10 +116,23 @@ void ENodeB::addSMStoSlot(const std::string &tmsi_s, const std::string &msisdn_d
     queue.push(msg);
 }
 
-void ENodeB::deleteSMSfromSlot(const std::string &tmsi_s, const std::string &msisdn_d) {
+bool ENodeB::deleteSMSfromSlot(const std::string &tmsi_s, const std::string &msisdn_d) {
     std::lock_guard lock(slotMtx);
-    auto& queue = TMSItoSlots[tmsi_s].outbox[msisdn_d];
-    queue.pop();
+    auto slotIt = TMSItoSlots.find(tmsi_s);
+    if (slotIt == TMSItoSlots.end()) {
+        spdlog::warn("[ENODE{}] Удаление смс: TMSI {} не найден",config.id, tmsi_s);
+        return false;
+    }
+
+    auto& outbox = slotIt->second.outbox;
+    auto queueIt = outbox.find(msisdn_d);
+    if (queueIt == outbox.end() || queueIt->second.empty()) {
+        spdlog::warn("[ENODE{}] Удаление смс: TMSI {} не найден",config.id, tmsi_s);
+        return false;
+    }
+
+    queueIt->second.pop();
+    return true;
 }
 
 void ENodeB::receiveSMS(SMSMessage msg) {
