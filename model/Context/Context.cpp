@@ -34,10 +34,6 @@ void Context::changeSMSStatus(const std::string &msisdn, int id, MessageStatus s
 }
 
 void Context::setTMSI(std::string TMSI_) {
-    if (!TMSI.empty()) {
-        spdlog::info("Ошибка - нельзя перезаписывать TMSI");
-        return;
-    }
     TMSI = std::move(TMSI_);
 }
 

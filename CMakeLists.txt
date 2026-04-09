@@ -74,6 +74,8 @@ set(MNC_S_SOURCES
         MNC-S/MME/include/MMEJSONSchemas.h
         MNC-S/Utils/ArgParcerMNC.cpp
         MNC-S/Utils/ArgParcerMNC.h
+        MNC-S/Utils/utils.h
+        MNC-S/Utils/utils.cpp
 
 )
 

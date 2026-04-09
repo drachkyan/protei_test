@@ -102,7 +102,7 @@ json MMEHandler::sendSMS(ENodeB* ENodeS, int enodeD, std::string TMSI_D, std::st
 
 std::optional<Subscriber> MMEHandler::handleWaitAbonent(std::string MSISDN_D) {
     spdlog::info("[MME] Ожидание появления абонента");
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(20);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(TTL_SMS);
 
     while (std::chrono::steady_clock::now() < deadline) {
         std::this_thread::sleep_for(std::chrono::milliseconds(250));
@@ -220,8 +220,8 @@ json MMEHandler::handleDisconnect(const json &req) {
     return StatusCode::SUCCESS_JSON;
 }
 
-MMEHandler::MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& enodes_)
-        : TMSI_script(std::move(path)), xlr(xlr_), ENodes(enodes_) {
+MMEHandler::MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& enodes_, int TTL_SMS_)
+        : TMSI_script(std::move(path)), xlr(xlr_), ENodes(enodes_), TTL_SMS(TTL_SMS_) {
 
     initHandlersMap();
 }

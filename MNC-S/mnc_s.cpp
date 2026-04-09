@@ -2,12 +2,13 @@
 #include "ENODE/include/ENodeB.h"
 #include "Utils/Parser.h"
 #include "Utils/ArgParcerMNC.h"
+#include "Utils/utils.h"
 
 int main(int argc, char* argv[]) {
     ArgParserMNC argParser;
     argParser.parse(argc, argv);
     if (!argParser.isValid()) {
-        spdlog::info("Неверные аргументы запуска");
+        throw std::runtime_error("Неверные аргументы командной строки");
         return 1;
     }
     const std::string enodePath = argParser.getBasesJsonPath();
@@ -17,8 +18,10 @@ int main(int argc, char* argv[]) {
     EPCConfig epc = parseEPC(epcPath);
     auto enodeConfigs = parseBases(enodePath);
 
+    setupLogger(epc.xdr_provider, epc.xdr_path, epc.xdr_format);
+
     std::string pythonPath = epc.tmsi_script;
-    MME mme(pythonPath);
+    MME mme(pythonPath, epc.ttl_sms, epc.hlr_path);
     std::thread mme_t(&MME::run, &mme);
 
     std::unordered_map<int, ENodeB*> ENodes;

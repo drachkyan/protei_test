@@ -9,21 +9,37 @@
 #include <nlohmann/json.hpp>
 #include "spdlog/spdlog.h"
 #include "../../include/utils/utils.h"
-
+#include <fcntl.h>
 
 int NetworkClient::createConnection() {
     fd = socket(AF_INET, SOCK_STREAM, 0);
-
+    spdlog::info("Подключение");
     sockaddr_in addr{
         .sin_family = AF_INET,
         .sin_port   = htons(address.getPort()),
     };
     inet_pton(AF_INET, address.getIpAddress().c_str(), &addr.sin_addr);
 
-    if (connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) < 0) {
+    fcntl(fd, F_SETFL, O_NONBLOCK);
+
+    connect(fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr));
+
+    fd_set wfds;
+    FD_ZERO(&wfds);
+    FD_SET(fd, &wfds);
+    timeval tv{.tv_sec = 3, .tv_usec = 0};
+
+    int ready = select(fd + 1, nullptr, &wfds, nullptr, &tv);
+    if (ready <= 0) {
+        spdlog::info("Не удалось соединиться: таймаут");
+        ::close(fd);
+        fd = -1;
         return 1;
     }
+
+    fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
     connectionFlag=true;
+    spdlog::info("Подключились");
     return 0;
 }
 
