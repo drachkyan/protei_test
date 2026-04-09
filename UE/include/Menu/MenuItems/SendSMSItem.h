@@ -22,8 +22,11 @@ public:
         std::string msisdn, msg;
         std::cout << "Введите номер получателя\n";
         std::cin>> msisdn;
-        std::cout<<"Введите сообщение\n";
-        std::cin>> msg;
+
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        std::cout << "Введите сообщение: ";
+        std::getline(std::cin, msg);
+
         spdlog::info("Отправка сообщения");
         UEex.sendSMS(msisdn, msg);
         return MENU_EXITS::DEFAULT;

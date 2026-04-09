@@ -32,7 +32,7 @@ class PrintSMSItem : public AbstractMenuItem {
             if (isIncoming) {
                 std::cout << "[" << msg.msisdn << "]: " << msg.text << "\n";
             } else {
-                std::string status;
+                std::string status{};
                 switch (msg.status) {
                     case MessageStatus::PENDING:   status = "⏳"; break;
                     case MessageStatus::SENT:      status = "✓"; break;

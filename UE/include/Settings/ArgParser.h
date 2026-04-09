@@ -24,6 +24,10 @@ public:
 
     void parse(int argc, char* argv[]);
 
+    [[nodiscard]] std::string getAddr() const { return addr; }
+    [[nodiscard]] std::string getPort() const { return port; }
+    [[nodiscard]] std::string getImei() const { return imei; }
+    [[nodiscard]] std::string getImsi() const { return imsi; }
 
     [[nodiscard]] AppSettings build() const {
 

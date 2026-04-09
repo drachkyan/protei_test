@@ -6,11 +6,10 @@
 #include "../../include/Menu/MenuItems/MoveItem.h"
 #include "spdlog/spdlog.h"
 #include "../../include/utils/utils.h"
-#include "../../include/Network/NetworkClient.h"
 #include "../../include/Menu/MenuItems/QuitItem.h"
-#include "../../include/Menu/MenuItems/RadioMesureItem.h"
 #include "../../include/Menu/MenuItems/SendSMSItem.h"
 #include "../../include/Menu/MenuItems/PrintSMSItem.h"
+#include "../../include/Menu/MenuItems/DeactivateItem.h"
 
 void Menu::initMenuItems() {
     menuItems.insert({"quit",
@@ -18,9 +17,6 @@ void Menu::initMenuItems() {
 
     menuItems.insert({"exit",
         std::make_unique<QuitItem>("", "")});
-
-    menuItems.insert({"send",
-        std::make_unique<RadioMeasureItem>("send", "Отправить местоположение TEST", UEex, app.getContext())});
 
     menuItems.insert({"activate",
         std::make_unique<ActivateItem>("activate", "Активировать подключение", UEex)});
@@ -34,6 +30,9 @@ void Menu::initMenuItems() {
     menuItems.insert({"move",
         std::make_unique<MoveItem>("move", "Переместится на другую координату", app.getContext())});
 
+    menuItems.insert({"deactivate",
+        std::make_unique<DeactivateItem>("deactivate", "Деактивировать подключение", UEex)});
+
 }
 
 Menu::Menu(AppSettings &app_): app(app_), UEex(app_) {
@@ -46,10 +45,20 @@ void Menu::run() {
     MENU_EXITS EXIT_CODE = MENU_EXITS::DEFAULT;
     std::string command;
     while (EXIT_CODE == MENU_EXITS::DEFAULT ) {
-
-        if (!(std::cin >> command)) {
-            spdlog::info("Произошла ошибка");
+        std::cout << std::flush;
+        if (!std::getline(std::cin, command)) {
+            if (std::cin.eof()) {
+                spdlog::info("Достигнут конец потока (EOF)");
+            } else {
+                spdlog::error("Ошибка чтения ввода");
+            }
             break;
+        }
+        command.erase(0, command.find_first_not_of(" \t\r\n"));
+        command.erase(command.find_last_not_of(" \t\r\n") + 1);
+
+        if (command.empty()) {
+            continue;
         }
 
         toLowerCase(command);

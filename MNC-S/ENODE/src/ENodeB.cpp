@@ -1,6 +1,5 @@
 #include "../include/ENodeB.h"
-
-#include "spdlog/spdlog.h"
+#include <spdlog/spdlog.h>
 
 
 ENodeB::ENodeB(int id_, double x_, double power_, double radius_, MME& mme_, std::unordered_map<int, ENodeB*>& ENodes_, Sender& sender_):
@@ -68,17 +67,20 @@ void ENodeB::pushInternalTask(Task msg) {
 }
 
 bool ENodeB::hasFreeSlot() const {
-    return TMSItoSlots.size() <= MAX_CONNECTIONS;
+    spdlog::info("[ENODE{}] Количество подключений сейчас = {}",config.id, TMSItoSlots.size()+1);
+    return TMSItoSlots.size() <= MAX_CONNECTIONS - 1;  // сначала сравниаем поэтому минус один
 }
 
 bool ENodeB::reserveSlot(const std::string& tmsi) {
     std::lock_guard lock(slotMtx);
+    spdlog::info("[ENODE{}] Резервируем слот для {}", config.id, tmsi);
+
     if (!hasFreeSlot()) {
-        spdlog::info("[ENODE] нет свободных слотов");
+        spdlog::info("[ENODE{}] нет свободных слотов", config.id);
         return false;
     }
 
-    TMSItoSlots[tmsi] = Slot{};
+    TMSItoSlots.emplace(tmsi, Slot{});
     return true;
 }
 
@@ -87,11 +89,50 @@ void ENodeB::releaseSlot(const std::string& tmsi) {
     TMSItoSlots.erase(tmsi);
 }
 
+void ENodeB::handover(std::string tmsi, Slot slot) {
+    std::lock_guard lock(slotMtx);
+
+    TMSItoSlots[tmsi] = std::move(slot);
+
+    spdlog::info("[ENODE {}] Принят handover для TMSI {}. Буфер перенесен.", config.id, tmsi);
+}
+
+std::optional<Slot> ENodeB::detachSlot(const std::string &tmsi) {
+    std::lock_guard lock(slotMtx);
+    auto it = TMSItoSlots.find(tmsi);
+    if (it != TMSItoSlots.end()) {
+        Slot movedSlot = std::move(it->second);
+        TMSItoSlots.erase(it);
+
+        return movedSlot;
+    }
+    return std::nullopt;
+}
+
 void ENodeB::addSMStoSlot(const std::string &tmsi_s, const std::string &msisdn_d, SMSMessage &msg) {
     std::lock_guard lock(slotMtx);
-    spdlog::info("[ENODE] добавлено сообщение для {}", msisdn_d);
+    spdlog::info("[ENODE{}] добавлено сообщение для {}", config.id, msisdn_d);
     auto& queue = TMSItoSlots[tmsi_s].outbox[msisdn_d];
     queue.push(msg);
+}
+
+bool ENodeB::deleteSMSfromSlot(const std::string &tmsi_s, const std::string &msisdn_d) {
+    std::lock_guard lock(slotMtx);
+    auto slotIt = TMSItoSlots.find(tmsi_s);
+    if (slotIt == TMSItoSlots.end()) {
+        spdlog::warn("[ENODE{}] Удаление смс: TMSI {} не найден",config.id, tmsi_s);
+        return false;
+    }
+
+    auto& outbox = slotIt->second.outbox;
+    auto queueIt = outbox.find(msisdn_d);
+    if (queueIt == outbox.end() || queueIt->second.empty()) {
+        spdlog::warn("[ENODE{}] Удаление смс: TMSI {} не найден",config.id, tmsi_s);
+        return false;
+    }
+
+    queueIt->second.pop();
+    return true;
 }
 
 void ENodeB::receiveSMS(SMSMessage msg) {
@@ -100,7 +141,6 @@ void ENodeB::receiveSMS(SMSMessage msg) {
         auto& queue = TMSItoSlots[msg.tmsi_dst].inbox;
         queue.push(msg);
     }
-    spdlog::info("tmsi: {}", msg.tmsi_dst);
     // отправляем клиенту
     json req {
         {"type", "SS"},
@@ -112,12 +152,23 @@ void ENodeB::receiveSMS(SMSMessage msg) {
 }
 
 
-SMSMessage ENodeB::getSMStoSend(const std::string &tmsi_s, const std::string &msisdn_d) {
-    std::lock_guard lock(slotMtx);
-    spdlog::info("[ENODE] ищем сообщение для {}", msisdn_d);
-    auto& queue = TMSItoSlots[tmsi_s].outbox[msisdn_d];
-    SMSMessage msg = queue.front();
-    spdlog::info("Нашли: {}", msg.text);
+std::optional<SMSMessage> ENodeB::getSMStoSend(const std::string &tmsi_s, const std::string &msisdn_d) {
+    auto slotIt = TMSItoSlots.find(tmsi_s);
+    if (slotIt == TMSItoSlots.end()) {
+        spdlog::info("[ENODE{}] Слот для TMSI {} не найден", config.id, tmsi_s);
+        return std::nullopt;
+    }
+
+    auto& outboxMap = slotIt->second.outbox;
+    auto outboxIt = outboxMap.find(msisdn_d);
+
+    if (outboxIt == outboxMap.end() || outboxIt->second.empty()) {
+        spdlog::info("[ENODE{}] Очередь сообщений для {} пуста", config.id, msisdn_d);
+        return std::nullopt;
+    }
+
+    auto& queue = outboxIt->second;
+    SMSMessage msg = std::move(queue.front());
     queue.pop();
     return msg;
 }

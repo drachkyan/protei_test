@@ -63,10 +63,16 @@ public:
     bool reserveSlot(const std::string& tmsi);
     void releaseSlot(const std::string& tmsi);
 
+    void handover(std::string tmsi, Slot slot);
+
+    std::optional<Slot> detachSlot(const std::string &tmsi);
+
     void addSMStoSlot(const std::string &tmsi_s, const std::string &msisdn_d, SMSMessage &msg);
+
+    bool deleteSMSfromSlot(const std::string &tmsi_s, const std::string &msisdn_d);
     void receiveSMS(SMSMessage msg);
 
-    SMSMessage getSMStoSend(const std::string& tmsi_s, const std::string& msisdn_d);
+    std::optional<SMSMessage> getSMStoSend(const std::string& tmsi_s, const std::string& msisdn_d);
     SMSMessage getSMSbyTMSI(const std::string& tmsi);
 };
 

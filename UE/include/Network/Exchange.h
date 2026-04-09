@@ -22,6 +22,8 @@ class Exchange {
     std::mutex pendingMtx;
     std::mutex signalMtx;
 
+    bool isHandoverNeeded(double cur, double best);
+
     json handleAttachRequest();
     json handleAuthResponse();
 
@@ -31,18 +33,22 @@ class Exchange {
 
     void onDisconnect();
 public:
-
-    void shutdown() { IN_ACTIVE = false;}
+    bool handover(int ENode);
+    void shutdown();
 
     json sendAndWait(json& req);
     void send(json& req);
     json radioMeasure();
 
+    void handleStationLoss();
+
+    void checkAndPerformHandover(const json &enodes, double currentPower);
+
 
     void sendSMS(const std::string& msisdn, const std::string& msg);
     void sendSMSStatus(const std::string& msisdn_d, int id, MessageStatus status);
 
-    void attach();
+    bool attach();
     void connect();
 
     bool isConnected() const { return IN_ACTIVE; };

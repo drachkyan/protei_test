@@ -1,4 +1,4 @@
-#include "../include/Transport.h"
+#include "../include/Listener.h"
 
 #include <netinet/in.h>
 #include <spdlog/spdlog.h>
@@ -6,13 +6,13 @@
 using json = nlohmann::json;
 
 
-void Transport::initHandlers() {
+void Listener::initHandlers() {
     handlersMap[OpType::ACCEPT] = [this](OpContext* ctx, int res) { onAccept(ctx, res); };
     handlersMap[OpType::RECV]   = [this](OpContext* ctx, int res) { onRecv(ctx, res); };
     handlersMap[OpType::SEND]   = [this](OpContext* ctx, int res) { onSend(ctx, res); };
 }
 
-void Transport::addAccept() {
+void Listener::addAccept() {
     auto ctx = std::make_unique<OpContext>(OpType::ACCEPT, server_fd, BUF_SIZE);
     auto* sqe = io_uring_get_sqe(&ring);
     io_uring_prep_accept(sqe, server_fd,
@@ -21,7 +21,7 @@ void Transport::addAccept() {
     pendingContexts.push_back(std::move(ctx));
 }
 
-void Transport::addRecv(int client_fd) {
+void Listener::addRecv(int client_fd) {
     auto ctx = std::make_unique<OpContext>(OpType::RECV, client_fd, BUF_SIZE);
     auto* sqe = io_uring_get_sqe(&ring);
     io_uring_prep_recv(sqe, client_fd, ctx->buf.get(), ctx->buf_size, 0);
@@ -29,7 +29,7 @@ void Transport::addRecv(int client_fd) {
     pendingContexts.push_back(std::move(ctx));
 }
 
-void Transport::addSend(int client_fd, const char *data, size_t len, bool isLast) {
+void Listener::addSend(int client_fd, const char *data, size_t len, bool isLast) {
     auto ctx = std::make_unique<OpContext>(OpType::SEND, client_fd, len, isLast);
     std::copy_n(data, len, ctx->buf.get());
     auto* sqe = io_uring_get_sqe(&ring);
@@ -38,12 +38,12 @@ void Transport::addSend(int client_fd, const char *data, size_t len, bool isLast
     pendingContexts.push_back(std::move(ctx));
 }
 
-Transport::Transport(int PORT_):
+Listener::Listener(int PORT_):
     PORT(PORT_), QUEUE_DEPTH(32), BUF_SIZE(1024) {
     initHandlers();
 }
 
-void Transport::run() {
+void Listener::run() {
     if (!init()) {
         spdlog::info("Сервер не запущен");
         return;
@@ -78,7 +78,7 @@ void Transport::run() {
     }
 }
 
-bool Transport::init() {
+bool Listener::init() {
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd < 0) {
         spdlog::info("ошибка создания сокета");

@@ -30,7 +30,7 @@ class MMEHandler final : public RequestHandler {
 
     json handleSMS(const json& req);
     json handleSMSStatus(const json& req);
-
+    json handleHandover(const json& req);
     json handleDisconnect(const json& req);
 public:
     MMEHandler(std::string path, XLR& xlr_, std::unordered_map<int, ENodeB*>& ENodes_);

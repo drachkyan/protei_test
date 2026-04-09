@@ -4,7 +4,6 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#include <iostream>
 #include <memory>
 #include <unistd.h>
 #include <nlohmann/json.hpp>
