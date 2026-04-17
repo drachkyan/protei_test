@@ -1,0 +1,11 @@
+.idea/
+build/
+cmake-build-debug-wsl/
+
+TODO.MD
+CMakeCache.txt
+CMakeFiles/
+.cmake/
+docker-compose.yml
+Dockerfile
+*.log
